@@ -13,32 +13,32 @@ const Footer: React.FC = () => {
             <p className='text-sm'>© {new Date().getFullYear()} AuctioHub. All rights reserved.</p>
           </div>
 
-          {/* Nav Links */}
-          <nav className='mb-0 md:mb-0'>
-            <ul className='flex flex-col md:flex-row items-center space-y-3 md:space-y-0 md:space-x-6'>
-              <li>
-                <Link href='/docs' className='hover:underline'>Docs</Link>
-              </li>
-              <li>
-                <Link href='/category' className='hover:underline'>Browse</Link>
-              </li>
-              <li>
-                <Link href='/contact' className='hover:underline'>Contact</Link>
-              </li>
-              <li>
-                <Link href='/faq' className='hover:underline'>FAQ</Link>
-              </li>
-            </ul>
-          </nav>
+                {/* Nav Links */}
+                <nav className='mb-0 md:mb-0'>
+                <ul className='flex flex-col md:flex-row items-center space-y-3 md:space-y-0 md:space-x-6'>
+                  <li>
+                  <Link href='https://docs-auctiohub.vercel.app/' className='hover:underline' target='_blank' rel='noopener noreferrer'>Docs</Link>
+                  </li>
+                  <li>
+                  <Link href='/category' className='hover:underline'>Browse</Link>
+                  </li>
+                  <li>
+                  <Link href='/contact' className='hover:underline'>Contact</Link>
+                  </li>
+                  <li>
+                  <Link href='/faq' className='hover:underline'>FAQ</Link>
+                  </li>
+                </ul>
+                </nav>
 
-          {/* Social Media Links */}
-          <div className='flex items-center justify-center space-x-4 mb-0 md:mb-0'>
-            <a href='https://www.instagram.com' className='hover:text-[#f52370]'>
-              <FaInstagram className='text-2xl' />
-            </a>
-            <a href='https://www.facebook.com' className='hover:text-[#234af5]'>
-              <FaFacebook className='text-2xl' />
-            </a>
+                {/* Social Media Links */}
+                <div className='flex items-center justify-center space-x-4 mb-0 md:mb-0'>
+                <a href='https://www.instagram.com' className='hover:text-[#f52370]'>
+                  <FaInstagram className='text-2xl' />
+                </a>
+                <a href='https://www.facebook.com' className='hover:text-[#234af5]'>
+                  <FaFacebook className='text-2xl' />
+                </a>
             <a href='https://www.twitter.com' className='hover:text-[#23c8f5]'>
               <FaTwitter className='text-2xl' />
             </a>
