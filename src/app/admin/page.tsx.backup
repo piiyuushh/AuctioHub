@@ -1,0 +1,56 @@
+import { isAdmin } from '@/lib/admin'
+import { redirect } from 'next/navigation'
+
+// Force dynamic rendering for admin routes
+export const dynamic = 'force-dynamic'
+
+export default async function AdminPage() {
+  console.log('🔍 Admin page accessed')
+  
+  const adminStatus = await isAdmin()
+  console.log('🛡️ Admin status:', adminStatus)
+  
+  if (!adminStatus) {
+    console.log('❌ Admin access denied')
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="bg-white p-8 rounded-lg shadow-lg text-center">
+          <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
+          <p className="text-gray-600 mb-4">You don't have admin access.</p>
+          <a href="/" className="bg-blue-500 text-white px-4 py-2 rounded">
+            Go Home
+          </a>
+        </div>
+      </div>
+    )
+  }
+  
+  console.log('✅ Admin access granted')
+  return (
+    <div className="min-h-screen bg-gray-50 p-8">
+      <div className="max-w-6xl mx-auto">
+        <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-xl font-semibold mb-4">Welcome to Admin Panel</h2>
+          <p className="text-gray-600 mb-4">
+            You have successfully accessed the admin dashboard!
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h3 className="font-semibold text-blue-800">Carousel Management</h3>
+              <p className="text-blue-600 text-sm">Manage homepage carousel images</p>
+            </div>
+            <div className="bg-green-50 p-4 rounded-lg">
+              <h3 className="font-semibold text-green-800">User Management</h3>
+              <p className="text-green-600 text-sm">View and manage users</p>
+            </div>
+            <div className="bg-purple-50 p-4 rounded-lg">
+              <h3 className="font-semibold text-purple-800">Settings</h3>
+              <p className="text-purple-600 text-sm">Configure application settings</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
