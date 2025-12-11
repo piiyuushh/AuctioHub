@@ -4,12 +4,12 @@ import Image from 'next/image';
 import Link from 'next/link';
 const Footer: React.FC = () => {
   return (
-    <footer className='bg-[#000000] text-white py-8'>
+    <footer className='bg-[#e0e0e0] text-[#606060] py-8'>
       <div className='container mx-auto px-4'>
         <div className='flex flex-col md:flex-row justify-between items-center md:items-center space-y-6 md:space-y-0'>
           {/* Logo & Copyright */}
           <div className='text-center md:text-left mb-0 md:mb-0'>
-            <Image src='/assets/logo_for_footer.png' className='mb-2 mx-auto md:mx-0' alt='AuctioHub Logo' width={200} height={80} />
+            <Image src='/assets/header logo.png' className='mb-2 mx-auto md:mx-0' alt='AuctioHub Logo' width={200} height={80} />
             <p className='text-sm'>© {new Date().getFullYear()} AuctioHub. All rights reserved.</p>
           </div>
 
@@ -51,7 +51,7 @@ const Footer: React.FC = () => {
               href='https://sajilo-ui.vercel.app/'
               target='_blank'
               rel='noopener noreferrer'
-              className='text-blue-400 hover:underline ml-1'
+              className='text-[#606060] hover:underline ml-1'
             >
               Sajilo UI
             </a>

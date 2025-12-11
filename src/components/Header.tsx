@@ -109,7 +109,7 @@ export function Header() {
       }`}
     >
       {/* Top Bar */}
-      <div className="w-full bg-black text-white text-center text-sm py-2 relative overflow-hidden">
+      <div className="w-full bg-[#4682A9] text-white text-center text-sm py-2 relative overflow-hidden">
         <div className="absolute inset-0 bg-white/10 animate-pulse"></div>
         <div className="relative z-10 font-medium">
           Welcome to auctiohub.com.np | Bid Smart. Win Big
@@ -150,8 +150,8 @@ export function Header() {
             <div className="relative">
               <div className="absolute inset-0 bg-gray-800 rounded-lg blur opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
               <Image 
-                src="/assets/logo.png" 
-                alt="Tokari Logo" 
+                src="/assets/header logo.png" 
+                alt="AuctioHub Logo" 
                 width={120} 
                 height={45} 
                 className="relative z-10" 
@@ -183,8 +183,8 @@ export function Header() {
             <div className="relative">
               <div className="absolute inset-0 bg-gray-800 rounded-lg blur opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
               <Image 
-                src="/assets/logo.png" 
-                alt="Tokari Logo" 
+                src="/assets/header logo.png" 
+                alt="AuctioHub Logo" 
                 width={140} 
                 height={52} 
                 className="relative z-10" 
@@ -249,7 +249,7 @@ export function Header() {
           >
             {/* Mobile Header */}
             <div className="mobile-menu-section header-section flex justify-between items-center p-4 border-b border-gray-100 bg-white flex-shrink-0">
-              <Image src="/assets/logo.png" alt="Tokari" width={100} height={38} />
+              <Image src="/assets/header logo.png" alt="AuctioHub" width={100} height={38} />
               <button
                 className="p-2 rounded-full hover:bg-gray-100 transition-colors duration-200"
                 onClick={handleCloseMenu}
