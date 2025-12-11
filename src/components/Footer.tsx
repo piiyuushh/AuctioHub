@@ -1,59 +1,109 @@
 import React from 'react';
-import { FaFacebook, FaInstagram, FaTwitter } from 'react-icons/fa';
+import { FaGavel, FaEnvelope, FaPhone, FaMapMarkerAlt } from 'react-icons/fa';
 import Image from 'next/image';
 import Link from 'next/link';
+
 const Footer: React.FC = () => {
   return (
-    <footer className='bg-[#e0e0e0] text-[#606060] py-8'>
+    <footer className='bg-gradient-to-br from-[#393E46] to-[#2a2e35] text-[#F7F7F7] pt-12 pb-6'>
       <div className='container mx-auto px-4'>
-        <div className='flex flex-col md:flex-row justify-between items-center md:items-center space-y-6 md:space-y-0'>
-          {/* Logo & Copyright */}
-          <div className='text-center md:text-left mb-0 md:mb-0'>
-            <Image src='/assets/header logo.png' className='mb-2 mx-auto md:mx-0' alt='AuctioHub Logo' width={200} height={80} />
-            <p className='text-sm'>© {new Date().getFullYear()} AuctioHub. All rights reserved.</p>
+        {/* Main Footer Content */}
+        <div className='grid grid-cols-1 md:grid-cols-3 gap-8 mb-8'>
+          {/* About Section */}
+          <div className='space-y-4'>
+            <Image 
+              src='/assets/header logo.png' 
+              alt='AuctioHub Logo' 
+              width={180} 
+              height={72}
+              className='mb-3'
+            />
+            <p className='text-sm text-[#EEEEEE] leading-relaxed'>
+              Your trusted platform for online auctions. Bid smart, win big, and discover unique items from around the world.
+            </p>
+            <div className='flex items-center space-x-2 text-[#929AAB]'>
+              <FaGavel className='text-lg' />
+              <span className='text-sm font-medium'>Trusted by valid users</span>
+            </div>
           </div>
 
-                {/* Nav Links */}
-                <nav className='mb-0 md:mb-0'>
-                <ul className='flex flex-col md:flex-row items-center space-y-3 md:space-y-0 md:space-x-6'>
-                  <li>
-                  <Link href='https://docs-auctiohub.vercel.app/' className='hover:underline' target='_blank' rel='noopener noreferrer'>Docs</Link>
-                  </li>
-                  <li>
-                  <Link href='/category' className='hover:underline'>Browse</Link>
-                  </li>
-                  <li>
-                  <Link href='/contact' className='hover:underline'>Contact</Link>
-                  </li>
-                  <li>
-                  <Link href='/faq' className='hover:underline'>FAQ</Link>
-                  </li>
-                </ul>
-                </nav>
-
-                {/* Social Media Links */}
-                <div className='flex items-center justify-center space-x-4 mb-0 md:mb-0'>
-                <a href='https://www.instagram.com' className='hover:text-[#f52370]'>
-                  <FaInstagram className='text-2xl' />
-                </a>
-                <a href='https://www.facebook.com' className='hover:text-[#234af5]'>
-                  <FaFacebook className='text-2xl' />
-                </a>
-            <a href='https://www.twitter.com' className='hover:text-[#23c8f5]'>
-              <FaTwitter className='text-2xl' />
-            </a>
+          {/* Quick Links */}
+          <div>
+            <h3 className='text-lg font-bold mb-4 text-white'>Quick Links</h3>
+            <ul className='space-y-2'>
+              <li>
+                <Link href='/category' className='text-[#EEEEEE] hover:text-[#929AAB] transition-colors duration-200 text-sm flex items-center group'>
+                  <span className='mr-2 opacity-0 group-hover:opacity-100 transition-opacity'>→</span>
+                  Browse Auctions
+                </Link>
+              </li>
+              <li>
+                <Link href='https://docs-auctiohub.vercel.app/' target='_blank' rel='noopener noreferrer' className='text-[#EEEEEE] hover:text-[#929AAB] transition-colors duration-200 text-sm flex items-center group'>
+                  <span className='mr-2 opacity-0 group-hover:opacity-100 transition-opacity'>→</span>
+                  Documentation
+                </Link>
+              </li>
+              <li>
+                <Link href='/faq' className='text-[#EEEEEE] hover:text-[#929AAB] transition-colors duration-200 text-sm flex items-center group'>
+                  <span className='mr-2 opacity-0 group-hover:opacity-100 transition-opacity'>→</span>
+                  FAQ
+                </Link>
+              </li>
+              <li>
+                <Link href='/contact' className='text-[#EEEEEE] hover:text-[#929AAB] transition-colors duration-200 text-sm flex items-center group'>
+                  <span className='mr-2 opacity-0 group-hover:opacity-100 transition-opacity'>→</span>
+                  Contact Us
+                </Link>
+              </li>
+            </ul>
           </div>
 
-          {/* Credits Section */}
-          <div className='text-sm text-center md:text-right mt-0 md:mt-0'>
-            Designed with care using 
+          {/* Contact Info */}
+          <div>
+            <h3 className='text-lg font-bold mb-4 text-white'>Contact</h3>
+            <ul className='space-y-3'>
+              <li className='flex items-start space-x-3 text-sm text-[#EEEEEE]'>
+                <FaMapMarkerAlt className='text-[#929AAB] mt-1 flex-shrink-0' />
+                <span>Kathmandu, Nepal</span>
+              </li>
+              <li className='flex items-center space-x-3 text-sm text-[#EEEEEE]'>
+                <FaEnvelope className='text-[#929AAB] flex-shrink-0' />
+                <a href='mailto:piyushkarn76@gmail.com' className='hover:text-[#929AAB] transition-colors'>
+                  Mail Here
+                </a>
+              </li>
+              <li className='flex items-center space-x-3 text-sm text-[#EEEEEE]'>
+                <FaPhone className='text-[#929AAB] flex-shrink-0' />
+                <a href='tel:+9779812345678' className='hover:text-[#929AAB] transition-colors'>
+                  +977 98-12345678
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className='border-t border-[#4a4e56] my-6'></div>
+
+        {/* Bottom Bar */}
+        <div className='flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0'>
+          <p className='text-sm text-[#929AAB]'>
+            © {new Date().getFullYear()} AuctioHub. All rights reserved.
+          </p>
+          <div className='flex items-center space-x-6 text-sm text-[#929AAB]'>
+            <Link href='/privacy' className='hover:text-[#F7F7F7] transition-colors'>
+              Privacy Policy
+            </Link>
+            <Link href='/terms' className='hover:text-[#F7F7F7] transition-colors'>
+              Terms of Service
+            </Link>
             <a
               href='https://sajilo-ui.vercel.app/'
               target='_blank'
               rel='noopener noreferrer'
-              className='text-[#606060] hover:underline ml-1'
+              className='hover:text-[#F7F7F7] transition-colors'
             >
-              Sajilo UI
+              Designed with Sajilo UI
             </a>
           </div>
         </div>
