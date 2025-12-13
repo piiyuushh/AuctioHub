@@ -146,15 +146,17 @@ export default function UserManager() {
         const data = await response.json()
         
         // Show detailed success message
-        let successMessage = data.message
-        if (data.details) {
+        let successMessage = data.message || 'User removed successfully'
+        
+        // Check if details exist before accessing nested properties
+        if (data.details && data.details.clerkDeletion && data.details.mongoDbDeletion) {
           const clerkStatus = data.details.clerkDeletion.success ? '✅ Clerk' : '❌ Clerk'
           const mongoStatus = data.details.mongoDbDeletion.success ? '✅ Database' : '❌ Database'
           successMessage += ` (${clerkStatus}, ${mongoStatus})`
           
           // If Clerk deletion failed but MongoDB succeeded, show warning
           if (!data.details.clerkDeletion.success && data.details.mongoDbDeletion.success) {
-            successMessage += ` - Warning: User removed from database but Clerk deletion failed: ${data.details.clerkDeletion.message}`
+            successMessage += ` - Warning: User removed from database but Clerk deletion failed: ${data.details.clerkDeletion.message || 'Unknown error'}`
           }
         }
         
