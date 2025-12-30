@@ -129,70 +129,81 @@ const HeroCarousel = () => {
       onTouchEnd={onTouchEnd}
     >
       {/* Slides */}
-      <div className="relative w-full h-[25vh] sm:h-[30vh] md:h-[40vh] lg:h-[50vh] xl:h-[60vh]">
+      <div className="relative w-full h-[400px] md:h-[500px] lg:h-[600px]">
         {images.map((img, index) => (
           <div
             key={index}
-            className={`absolute inset-0 transition-opacity duration-500 ease-in-out ${
+            className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
               currentIndex === index ? "opacity-100" : "opacity-0"
             }`}
           >
-            <Image
-              src={img}
-              alt={`Slide ${index + 1}`}
-              fill
-              className="object-cover rounded-lg sm:rounded-xl select-none"
-              priority={index === 0}
-              sizes="(max-width: 640px) 100vw, (max-width: 768px) 100vw, (max-width: 1024px) 100vw, 100vw"
-              draggable={false}
-            />
+            {/* Background Image with Dark Overlay */}
+            <div className="absolute inset-0 bg-[#1E293B]">
+              <Image
+                src={img}
+                alt={`Slide ${index + 1}`}
+                fill
+                className="object-cover opacity-60 select-none"
+                priority={index === 0}
+                sizes="100vw"
+                draggable={false}
+              />
+            </div>
+
+            {/* Gradient Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-r from-[#1E293B]/90 via-[#1E293B]/60 to-transparent" />
+
+            {/* Content */}
+            <div className="relative h-full max-w-[1800px] mx-auto px-6 lg:px-16 xl:px-24 flex items-center">
+              <div className="max-w-2xl">
+                {/* Live Auction Badge */}
+                <div className="inline-flex items-center gap-2 bg-[#EF4444]/20 backdrop-blur-sm border border-[#EF4444]/30 rounded-full px-4 py-2 mb-6">
+                  <span className="w-2 h-2 bg-[#EF4444] rounded-full animate-pulse" />
+                  <span className="text-white text-sm font-medium tracking-wide">
+                    LIVE AUCTION
+                  </span>
+                </div>
+
+                {/* Title */}
+                <h1 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-white mb-6 leading-tight">
+                  Rare Timepieces Collection
+                </h1>
+
+                {/* Description */}
+                <p className="text-base md:text-lg lg:text-xl text-gray-200 mb-8 leading-relaxed">
+                  Discover exclusive vintage watches from top collectors worldwide. Bidding ends in 24 hours.
+                </p>
+
+                {/* CTAs */}
+                <div className="flex flex-wrap gap-4">
+                  <button className="px-6 md:px-8 py-3 md:py-4 bg-[#F59E0B] hover:bg-[#D97706] text-white font-semibold rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                    Start Bidding
+                  </button>
+                  <button className="px-6 md:px-8 py-3 md:py-4 bg-transparent border-2 border-white text-white font-semibold rounded-lg hover:bg-white/10 transition-all duration-300">
+                    Learn More
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         ))}
       </div>
 
-      {/* Navigation arrows - hidden on mobile, visible on desktop */}
-      <button
-        onClick={goToPrevious}
-        className="absolute left-2 sm:left-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 sm:p-2 transition-all duration-200 opacity-0 sm:opacity-100 focus:opacity-100"
-        aria-label="Previous slide"
-      >
-        <svg className="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-        </svg>
-      </button>
-
-      <button
-        onClick={goToNext}
-        className="absolute right-2 sm:right-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 sm:p-2 transition-all duration-200 opacity-0 sm:opacity-100 focus:opacity-100"
-        aria-label="Next slide"
-      >
-        <svg className="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-        </svg>
-      </button>
-
-      {/* Dots - Hidden on mobile, visible on larger screens */}
-      <div className="absolute bottom-2 sm:bottom-4 left-1/2 transform -translate-x-1/2 hidden sm:flex space-x-2">
-        {images.map((_, index) => (
-          <button
-            key={index}
-            onClick={() => goToSlide(index)}
-            className={`w-3 h-3 rounded-full transition-all duration-200 touch-manipulation ${
-              currentIndex === index 
-                ? "bg-white" 
-                : "bg-white/60 hover:bg-white/80"
-            }`}
-            aria-label={`Go to slide ${index + 1}`}
-          />
-        ))}
-      </div>
-
-      {/* Mobile swipe indicator - only show on first load */}
+      {/* Navigation Dots */}
       {images.length > 1 && (
-        <div className="absolute top-2 right-2 sm:hidden">
-          <div className="bg-black/50 text-white text-xs px-2 py-1 rounded-full">
-            Swipe
-          </div>
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex gap-3">
+          {images.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => goToSlide(index)}
+              className={`h-3 rounded-full transition-all duration-300 ${
+                currentIndex === index
+                  ? "bg-[#F59E0B] w-8"
+                  : "bg-white/50 hover:bg-white/80 w-3"
+              }`}
+              aria-label={`Go to slide ${index + 1}`}
+            />
+          ))}
         </div>
       )}
     </div>
