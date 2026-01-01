@@ -6,7 +6,7 @@ import Image from 'next/image'
 import CarouselManager from './CarouselManager'
 import UserManager from './UserManager'
 import NewArrivalsManager from './NewArrivalsManager'
-import { FiHome, FiUsers, FiImage, FiPackage, FiSettings, FiActivity } from 'react-icons/fi'
+import { FiHome, FiUsers, FiImage, FiPackage, FiSettings, FiActivity, FiTrendingUp, FiShoppingBag } from 'react-icons/fi'
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('carousel')
@@ -54,112 +54,132 @@ export default function AdminDashboard() {
   }
 
   const tabs = [
-    { id: 'carousel', label: 'Carousel Management', icon: FiImage, available: true },
-    { id: 'newarrivals', label: 'New Arrivals', icon: FiActivity, available: true },
-    { id: 'users', label: 'User Management', icon: FiUsers, available: true },
-    { id: 'products', label: 'Products', icon: FiPackage, available: false },
-    { id: 'settings', label: 'Settings', icon: FiSettings, available: false },
+    { id: 'carousel', label: 'Carousel', icon: FiImage, available: true, color: 'blue' },
+    { id: 'newarrivals', label: 'New Arrivals', icon: FiTrendingUp, available: true, color: 'green' },
+    { id: 'users', label: 'Users', icon: FiUsers, available: true, color: 'purple' },
+    { id: 'products', label: 'Products', icon: FiPackage, available: false, color: 'orange' },
+    { id: 'settings', label: 'Settings', icon: FiSettings, available: false, color: 'gray' },
+  ]
+
+  const statsCards = [
+    {
+      title: 'Total Users',
+      value: stats.totalUsers,
+      loading: stats.loading,
+      icon: FiUsers,
+      bgColor: 'bg-blue-100',
+      textColor: 'text-blue-600',
+      description: 'Registered members'
+    },
+    {
+      title: 'Carousel Images',
+      value: stats.carouselImages,
+      loading: stats.loading,
+      icon: FiImage,
+      bgColor: 'bg-purple-100',
+      textColor: 'text-purple-600',
+      description: 'Active banners'
+    }
   ]
   
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Header */}
       <div className="bg-[#4682A9] shadow-lg">
-        <div className="container mx-auto px-4 sm:px-6 py-4">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div className="flex items-center space-x-3 sm:space-x-4">
-              <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-lg overflow-hidden bg-white border-2 border-gray-200">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+            <div className="flex items-center space-x-4">
+              <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden bg-white shadow-lg">
                 <Image
                   src="/assets/logo.png"
                   alt="AuctioHub Logo"
                   fill
-                  className="object-contain p-1"
+                  className="object-contain p-2"
                 />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-white">AuctioHub Admin</h1>
-                <p className="text-xs sm:text-sm text-gray-300">Platform Management</p>
+                <h1 className="text-2xl sm:text-3xl font-bold text-white">
+                  AuctioHub Admin
+                </h1>
+                <p className="text-sm text-gray-200 mt-1 flex items-center gap-2">
+                  <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                  Platform Management
+                </p>
               </div>
             </div>
             <button
               onClick={navigateToHome}
-              className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 bg-white text-black rounded-lg hover:bg-gray-100 transition-all duration-200 group font-medium"
+              className="w-full sm:w-auto px-6 py-3 bg-white text-[#4682A9] rounded-xl font-semibold shadow-lg hover:bg-gray-50 transition-all duration-300 flex items-center justify-center gap-2"
             >
-              <FiHome className="mr-2 group-hover:animate-pulse" />
-              <span className="sm:inline">Go to Home</span>
+              <FiHome className="text-lg" />
+              Back to Home
             </button>
           </div>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm font-medium text-gray-600">Registered Users</p>
-                <div className="text-2xl sm:text-3xl font-bold text-black">
-                  {stats.loading ? (
-                    <div className="w-6 h-6 sm:w-8 sm:h-8 border-2 border-gray-300 border-t-black rounded-full animate-spin"></div>
-                  ) : (
-                    <span>{stats.totalUsers}</span>
-                  )}
+      {/* Stats Grid */}
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          {statsCards.map((card, index) => {
+            const Icon = card.icon
+            return (
+              <div
+                key={index}
+                className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-200 p-6"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-600 mb-2">{card.title}</p>
+                    <div className="flex items-baseline gap-2">
+                      {card.loading ? (
+                        <div className="w-10 h-10 border-4 border-gray-200 border-t-[#4682A9] rounded-full animate-spin"></div>
+                      ) : (
+                        <>
+                          <span className="text-4xl font-bold text-black">
+                            {card.value}
+                          </span>
+                          <span className={`text-sm font-medium ${card.textColor}`}>
+                            {card.description}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <div className={`${card.bgColor} p-4 rounded-xl`}>
+                    <Icon className={`text-2xl ${card.textColor}`} />
+                  </div>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Total users in database</p>
               </div>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                <FiUsers className="text-black text-lg sm:text-xl" />
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm font-medium text-gray-600">Carousel Images</p>
-                <div className="text-2xl sm:text-3xl font-bold text-black">
-                  {stats.loading ? (
-                    <div className="w-6 h-6 sm:w-8 sm:h-8 border-2 border-gray-300 border-t-black rounded-full animate-spin"></div>
-                  ) : (
-                    <span>{stats.carouselImages}</span>
-                  )}
-                </div>
-                <p className="text-xs text-gray-500 mt-1">Homepage carousel items</p>
-              </div>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                <FiImage className="text-black text-lg sm:text-xl" />
-              </div>
-            </div>
-          </div>
+            )
+          })}
         </div>
 
         {/* Navigation Tabs */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="border-b border-gray-200">
-            <nav className="flex overflow-x-auto scrollbar-hide" aria-label="Tabs">
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+          <div className="border-b border-gray-200 bg-gray-50">
+            <nav className="flex overflow-x-auto scrollbar-hide p-2" aria-label="Tabs">
               {tabs.map((tab) => {
                 const Icon = tab.icon
+                const isActive = activeTab === tab.id
                 return (
                   <button
                     key={tab.id}
                     onClick={() => tab.available && setActiveTab(tab.id)}
                     disabled={!tab.available}
-                    className={`relative flex-shrink-0 py-3 sm:py-4 px-4 sm:px-6 text-xs sm:text-sm font-medium text-center focus:outline-none transition-all duration-200 min-w-max ${
-                      activeTab === tab.id
-                        ? 'text-black bg-gray-50 border-b-2 border-black'
+                    className={`relative flex-shrink-0 px-6 py-4 text-sm font-semibold rounded-xl mx-1 transition-all duration-300 min-w-max ${
+                      isActive
+                        ? 'bg-[#4682A9] text-white shadow-md'
                         : tab.available
-                        ? 'text-gray-600 hover:text-black hover:bg-gray-50'
-                        : 'text-gray-400 cursor-not-allowed bg-gray-50'
+                        ? 'text-gray-600 hover:bg-gray-100 hover:text-black'
+                        : 'text-gray-400 cursor-not-allowed opacity-50'
                     }`}
                   >
-                    <div className="flex items-center justify-center space-x-1 sm:space-x-2">
-                      <Icon className={`text-sm sm:text-lg ${
-                        activeTab === tab.id ? 'text-black' : tab.available ? 'text-gray-500' : 'text-gray-400'
-                      }`} />
-                      <span className="whitespace-nowrap">{tab.label}</span>
+                    <div className="flex items-center space-x-2">
+                      <Icon className="text-lg" />
+                      <span>{tab.label}</span>
                       {!tab.available && (
-                        <span className="text-xs bg-gray-200 text-gray-600 px-1 sm:px-2 py-1 rounded-full ml-1 sm:ml-2">
+                        <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">
                           Soon
                         </span>
                       )}
@@ -171,12 +191,19 @@ export default function AdminDashboard() {
           </div>
 
           {/* Tab Content */}
-          <div className="p-4 sm:p-6">
+          <div className="p-8">
             {activeTab === 'carousel' && (
               <div>
-                <div className="mb-4 sm:mb-6">
-                  <h2 className="text-lg sm:text-xl font-semibold text-black mb-1 sm:mb-2">Carousel Management</h2>
-                  <p className="text-sm sm:text-base text-gray-600">Manage your homepage carousel images and content</p>
+                <div className="mb-8">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-3 bg-blue-100 rounded-xl">
+                      <FiImage className="text-2xl text-blue-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-black">Carousel Management</h2>
+                      <p className="text-sm text-gray-600 mt-1">Manage homepage carousel images and banners</p>
+                    </div>
+                  </div>
                 </div>
                 <CarouselManager />
               </div>
@@ -184,9 +211,16 @@ export default function AdminDashboard() {
             
             {activeTab === 'users' && (
               <div>
-                <div className="mb-4 sm:mb-6">
-                  <h2 className="text-lg sm:text-xl font-semibold text-black mb-1 sm:mb-2">User Management</h2>
-                  <p className="text-sm sm:text-base text-gray-600">View and manage platform users and their permissions</p>
+                <div className="mb-8">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-3 bg-purple-100 rounded-xl">
+                      <FiUsers className="text-2xl text-purple-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-black">User Management</h2>
+                      <p className="text-sm text-gray-600 mt-1">View and manage platform users and permissions</p>
+                    </div>
+                  </div>
                 </div>
                 <UserManager />
               </div>
@@ -194,48 +228,65 @@ export default function AdminDashboard() {
             
             {activeTab === 'newarrivals' && (
               <div>
-                <div className="mb-4 sm:mb-6">
-                  <h2 className="text-lg sm:text-xl font-semibold text-black mb-1 sm:mb-2">New Arrivals Management</h2>
-                  <p className="text-sm sm:text-base text-gray-600">Manage featured new arrival products on your homepage</p>
+                <div className="mb-8">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-3 bg-green-100 rounded-xl">
+                      <FiTrendingUp className="text-2xl text-green-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-black">New Arrivals</h2>
+                      <p className="text-sm text-gray-600 mt-1">Manage featured products on homepage</p>
+                    </div>
+                  </div>
                 </div>
                 <NewArrivalsManager />
               </div>
             )}
             
             {activeTab === 'products' && (
-              <div className="text-center py-12 sm:py-16">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-4 sm:mb-6">
-                  <FiPackage className="text-2xl sm:text-3xl text-gray-600" />
+              <div className="text-center py-20">
+                <div className="w-20 h-20 mx-auto bg-orange-100 rounded-full flex items-center justify-center mb-6 shadow-lg">
+                  <FiPackage className="text-4xl text-orange-600" />
                 </div>
-                <h3 className="text-lg sm:text-xl font-semibold text-black mb-2">Product Management</h3>
-                <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6 max-w-md mx-auto px-4">
-                  Advanced product management features are currently in development and will be available soon.
+                <h3 className="text-2xl font-bold text-black mb-3">Product Management</h3>
+                <p className="text-gray-600 mb-8 max-w-md mx-auto">
+                  Advanced product management features are currently in development
                 </p>
-                <div className="inline-flex items-center px-3 sm:px-4 py-2 bg-gray-100 text-gray-800 rounded-lg text-xs sm:text-sm font-medium">
-                  <FiSettings className="mr-1 sm:mr-2" />
+                <div className="inline-flex items-center px-6 py-3 bg-orange-100 text-orange-700 rounded-xl font-semibold">
+                  <FiSettings className="mr-2" />
                   Coming Soon
                 </div>
               </div>
             )}
             
             {activeTab === 'settings' && (
-              <div className="text-center py-12 sm:py-16">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-4 sm:mb-6">
-                  <FiSettings className="text-2xl sm:text-3xl text-gray-600" />
+              <div className="text-center py-20">
+                <div className="w-20 h-20 mx-auto bg-gray-200 rounded-full flex items-center justify-center mb-6 shadow-lg">
+                  <FiSettings className="text-4xl text-gray-600" />
                 </div>
-                <h3 className="text-lg sm:text-xl font-semibold text-black mb-2">Platform Settings</h3>
-                <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6 max-w-md mx-auto px-4">
-                  System configuration and platform settings will be available in the next update.
+                <h3 className="text-2xl font-bold text-black mb-3">Platform Settings</h3>
+                <p className="text-gray-600 mb-8 max-w-md mx-auto">
+                  System configuration and platform settings will be available soon
                 </p>
-                <div className="inline-flex items-center px-3 sm:px-4 py-2 bg-gray-100 text-gray-800 rounded-lg text-xs sm:text-sm font-medium">
-                  <FiActivity className="mr-1 sm:mr-2" />
-                  Coming Soon
+                <div className="inline-flex items-center px-6 py-3 bg-gray-200 text-gray-700 rounded-xl font-semibold">
+                  <FiActivity className="mr-2" />
+                  In Development
                 </div>
               </div>
             )}
           </div>
         </div>
       </div>
+      
+      <style jsx>{`
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
     </div>
   )
 }

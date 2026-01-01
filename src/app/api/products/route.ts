@@ -4,11 +4,29 @@ import { authOptions } from '@/lib/auth'
 import connectToDatabase from '@/lib/mongodb'
 import { Product } from '@/lib/models'
 
-// GET - Fetch all active products (public)
-export async function GET() {
+// GET - Fetch all active products (public) or single product by ID
+export async function GET(request: NextRequest) {
   try {
     await connectToDatabase()
     
+    const { searchParams } = new URL(request.url)
+    const productId = searchParams.get('id')
+    
+    // If ID is provided, fetch single product
+    if (productId) {
+      const product = await Product.findById(productId).lean()
+      
+      if (!product) {
+        return NextResponse.json(
+          { error: 'Product not found' },
+          { status: 404 }
+        )
+      }
+      
+      return NextResponse.json(product)
+    }
+    
+    // Otherwise, fetch all products
     const products = await Product.find({ isActive: true })
       .sort({ createdAt: -1 })
       .lean()

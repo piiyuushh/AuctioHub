@@ -79,7 +79,7 @@ export default function CategoryPage() {
     description: "",
     imageUrl: "",
     hasAuction: false,
-    auctionDurationHours: 24,
+    auctionDurationMinutes: 30,
     startingBid: 0,
   });
   const [uploading, setUploading] = useState(false);
@@ -177,9 +177,17 @@ export default function CategoryPage() {
     try {
       const url = "/api/products";
       const method = editingProduct ? "PUT" : "POST";
+      
+      // Convert minutes to hours for API
+      const bodyData = {
+        ...formData,
+        auctionDurationHours: formData.auctionDurationMinutes / 60,
+      };
+      delete (bodyData as any).auctionDurationMinutes;
+      
       const body = editingProduct
-        ? { ...formData, productId: editingProduct._id }
-        : formData;
+        ? { ...bodyData, productId: editingProduct._id }
+        : bodyData;
 
       const response = await fetch(url, {
         method,
@@ -197,7 +205,7 @@ export default function CategoryPage() {
           description: "",
           imageUrl: "",
           hasAuction: false,
-          auctionDurationHours: 24,
+          auctionDurationMinutes: 30,
           startingBid: 0,
         });
         setShowAddForm(false);
@@ -344,7 +352,7 @@ export default function CategoryPage() {
       description: "",
       imageUrl: "",
       hasAuction: false,
-      auctionDurationHours: 24,
+      auctionDurationMinutes: 30,
       startingBid: 0,
     });
   };
@@ -514,20 +522,34 @@ export default function CategoryPage() {
                         )}
 
                         {product.hasAuction && !product.isStatic && !isEnded && !isMyProduct && (
-                          <button
-                            onClick={() => {
-                              if (!session) {
-                                router.push("/sign-in");
-                                return;
-                              }
-                              setSelectedProduct(product);
-                              setShowBidModal(true);
-                            }}
-                            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
-                          >
-                            <CurrencyDollarIcon className="h-5 w-5" />
-                            Place Bid
-                          </button>
+                          <div className="space-y-2">
+                            <button
+                              onClick={() => {
+                                if (!session) {
+                                  router.push("/sign-in");
+                                  return;
+                                }
+                                router.push(`/auction/${product._id}`);
+                              }}
+                              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
+                            >
+                              <CurrencyDollarIcon className="h-5 w-5" />
+                              Join Auction
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (!session) {
+                                  router.push("/sign-in");
+                                  return;
+                                }
+                                setSelectedProduct(product);
+                                setShowBidModal(true);
+                              }}
+                              className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 text-black rounded-lg hover:border-black transition-colors"
+                            >
+                              Quick Bid
+                            </button>
+                          </div>
                         )}
 
                         {product.hasAuction && isEnded && product.highestBidderEmail && (
@@ -820,25 +842,26 @@ export default function CategoryPage() {
 
                     <div>
                       <label className="block text-sm font-semibold text-black mb-2">
-                        Auction Duration (hours) *
+                        Auction Duration (minutes) *
                       </label>
                       <select
-                        value={formData.auctionDurationHours}
+                        value={formData.auctionDurationMinutes}
                         onChange={(e) =>
                           setFormData((prev) => ({
                             ...prev,
-                            auctionDurationHours: parseInt(e.target.value),
+                            auctionDurationMinutes: parseInt(e.target.value),
                           }))
                         }
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-black"
                       >
-                        <option value={1}>1 hour</option>
-                        <option value={6}>6 hours</option>
-                        <option value={12}>12 hours</option>
-                        <option value={24}>24 hours (1 day)</option>
-                        <option value={48}>48 hours (2 days)</option>
-                        <option value={72}>72 hours (3 days)</option>
-                        <option value={168}>168 hours (7 days)</option>
+                        <option value={1}>1 minute</option>
+                        <option value={5}>5 minutes</option>
+                        <option value={10}>10 minutes</option>
+                        <option value={15}>15 minutes</option>
+                        <option value={20}>20 minutes</option>
+                        <option value={30}>30 minutes</option>
+                        <option value={45}>45 minutes</option>
+                        <option value={60}>60 minutes (1 hour)</option>
                       </select>
                     </div>
                   </div>

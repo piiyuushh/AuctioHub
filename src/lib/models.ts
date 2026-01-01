@@ -203,6 +203,30 @@ const BidSchema = new mongoose.Schema({
   collection: 'bids',
 })
 
+// Chat Message Schema
+const ChatMessageSchema = new mongoose.Schema({
+  productId: {
+    type: String,
+    required: true,
+    index: true,
+  },
+  userId: {
+    type: String,
+    required: true,
+  },
+  userEmail: {
+    type: String,
+    required: true,
+  },
+  message: {
+    type: String,
+    required: true,
+  },
+}, {
+  timestamps: true,
+  collection: 'chatmessages',
+})
+
 // Export models
 export const User = mongoose.models.User || mongoose.model('User', UserSchema)
 export const CarouselImage = mongoose.models.CarouselImage || mongoose.model('CarouselImage', CarouselImageSchema)
@@ -210,6 +234,7 @@ export const NewArrival = mongoose.models.NewArrival || mongoose.model('NewArriv
 export const AdminSetting = mongoose.models.AdminSetting || mongoose.model('AdminSetting', AdminSettingSchema)
 export const Product = mongoose.models.Product || mongoose.model('Product', ProductSchema)
 export const Bid = mongoose.models.Bid || mongoose.model('Bid', BidSchema)
+export const ChatMessage = mongoose.models.ChatMessage || mongoose.model('ChatMessage', ChatMessageSchema)
 
 // Types for TypeScript
 export interface IUser {
@@ -282,6 +307,16 @@ export interface IBid {
   bidAmount: number
   isWinning: boolean
   isActive: boolean
+  createdAt?: Date
+  updatedAt?: Date
+}
+
+export interface IChatMessage {
+  _id?: string
+  productId: string
+  userId: string
+  userEmail: string
+  message: string
   createdAt?: Date
   updatedAt?: Date
 }
