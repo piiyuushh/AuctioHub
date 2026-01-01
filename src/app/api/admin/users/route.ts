@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/admin'
 import connectToDatabase from '@/lib/mongodb'
 import { User } from '@/lib/models'
-import { clerkClient } from '@clerk/nextjs/server'
 
 // GET - Fetch all users
 export async function GET() {
@@ -91,7 +90,7 @@ export async function PUT(request: NextRequest) {
         _id: user._id,
         email: user.email,
         role: user.role,
-        clerkId: user.clerkId
+        googleId: user.googleId
       }
     })
   } catch (error) {
@@ -152,9 +151,9 @@ export async function POST(request: NextRequest) {
       })
     }
     
-    // Create a placeholder admin user (will be connected when they sign up)
+    // Create a placeholder admin user (will be connected when they sign up with Google)
     const newUser = await User.create({
-      clerkId: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Temporary ID
+      googleId: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Temporary ID
       email,
       role: 'ADMIN'
     })
@@ -162,7 +161,7 @@ export async function POST(request: NextRequest) {
     console.log(`✅ Created placeholder admin user: ${email}`)
     
     return NextResponse.json({
-      message: `Admin user ${email} added successfully. They will have admin access when they sign up.`,
+      message: `Admin user ${email} added successfully. They will have admin access when they sign in with Google.`,
       user: newUser
     })
   } catch (error) {
@@ -215,30 +214,13 @@ export async function DELETE(request: NextRequest) {
       }
     }
     
-    // For real users (not temp placeholders), also try to delete from Clerk
-    let clerkDeletionResult = null
-    if (!user.clerkId.startsWith('temp-')) {
-      try {
-        const clerk = await clerkClient()
-        await clerk.users.deleteUser(user.clerkId)
-        clerkDeletionResult = 'User deleted from Clerk authentication'
-        console.log(`✅ Deleted user from Clerk: ${user.clerkId}`)
-      } catch (clerkError) {
-        console.warn('⚠️ Failed to delete user from Clerk (they may not exist there):', clerkError)
-        clerkDeletionResult = 'User was not found in Clerk (may be a placeholder user)'
-      }
-    } else {
-      clerkDeletionResult = 'Placeholder user - no Clerk account to delete'
-    }
-    
     // Remove from database
     await User.findByIdAndDelete(userId)
     
     console.log(`✅ Deleted user from database: ${user.email}`)
     
     return NextResponse.json({
-      message: `User ${user.email} has been removed successfully`,
-      details: clerkDeletionResult
+      message: `User ${user.email} has been removed successfully`
     })
   } catch (error) {
     console.error('❌ Error removing user:', error)

@@ -2,45 +2,102 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { FaTimes, FaRegBookmark, FaShoppingBag, FaUser } from "react-icons/fa";
+import { FaTimes, FaRegBookmark, FaShoppingBag, FaUser, FaSignOutAlt } from "react-icons/fa";
 import Image from "next/image";
-import { UserButton, SignedIn, SignedOut } from "@clerk/nextjs";
+import { useSession, signOut } from "next-auth/react";
 import { AdminLink } from "./AdminLink";
 import { UserLink } from "./UserLink";
 
-// Conditional UserButton component
+// User Button component using NextAuth
 function ConditionalUserButton() {
+  const { data: session, status } = useSession();
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  if (status === "loading") {
+    return (
+      <div className="w-10 h-10 rounded-full bg-gray-200 animate-pulse"></div>
+    );
+  }
+
+  if (!session) {
+    return (
+      <Link href="/sign-in" className="flex items-center justify-center w-10 h-10 rounded-full bg-black text-white hover:bg-gray-800 transition-all duration-300">
+        <FaUser className="text-sm" />
+      </Link>
+    );
+  }
+
   return (
-    <>
-      <SignedOut>
-        <Link href="/sign-in" className="flex items-center justify-center w-10 h-10 rounded-full bg-black text-white hover:bg-gray-800 transition-all duration-300">
-          <FaUser className="text-sm" />
-        </Link>
-      </SignedOut>
-      <SignedIn>
-        <UserButton 
-          appearance={{
-            elements: {
-              userButtonAvatarBox: {
-                width: "40px",
-                height: "40px"
-              },
-              userButtonPopoverCard: {
-                pointerEvents: "auto"
-              },
-              // Hide development mode text in user menu
-              userButtonPopoverFooter: {
-                display: "none"
-              }
-            },
-            variables: {
-              colorPrimary: "#000000"
-            }
-          }}
-        />
-      </SignedIn>
-    </>
+    <div className="relative">
+      <button
+        onClick={() => setShowDropdown(!showDropdown)}
+        className="flex items-center justify-center w-10 h-10 rounded-full overflow-hidden border-2 border-gray-200 hover:border-gray-400 transition-all duration-300"
+      >
+        {session.user?.image ? (
+          <Image
+            src={session.user.image}
+            alt={session.user.name || "User"}
+            width={40}
+            height={40}
+            className="object-cover"
+          />
+        ) : (
+          <div className="w-full h-full bg-black text-white flex items-center justify-center">
+            <FaUser className="text-sm" />
+          </div>
+        )}
+      </button>
+
+      {showDropdown && (
+        <>
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => setShowDropdown(false)}
+          ></div>
+          <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+            <div className="px-4 py-3 border-b border-gray-100">
+              <p className="text-sm font-semibold text-gray-900 truncate">
+                {session.user?.name || "User"}
+              </p>
+              <p className="text-xs text-gray-500 truncate">
+                {session.user?.email}
+              </p>
+            </div>
+            <Link
+              href="/user-dashboard"
+              onClick={() => setShowDropdown(false)}
+              className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              Dashboard
+            </Link>
+            <button
+              onClick={() => {
+                setShowDropdown(false);
+                signOut({ callbackUrl: "/" });
+              }}
+              className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
+            >
+              <FaSignOutAlt className="text-sm" />
+              Sign out
+            </button>
+          </div>
+        </>
+      )}
+    </div>
   );
+}
+
+// Signed In/Out components for mobile menu
+function SignedInContent({ children }: { children: React.ReactNode }) {
+  const { data: session } = useSession();
+  if (!session) return null;
+  return <>{children}</>;
+}
+
+function SignedOutContent({ children }: { children: React.ReactNode }) {
+  const { data: session, status } = useSession();
+  if (status === "loading" || session) return null;
+  return <>{children}</>;
 }
 
 const navLinks = [
@@ -267,14 +324,14 @@ export function Header() {
                     <ConditionalUserButton />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <SignedIn>
+                    <SignedInContent>
                       <p className="text-sm font-semibold text-gray-900 truncate">Welcome back!</p>
                       <p className="text-xs text-gray-500">Manage your account</p>
-                    </SignedIn>
-                    <SignedOut>
+                    </SignedInContent>
+                    <SignedOutContent>
                       <p className="text-sm font-medium text-gray-700">Sign in for deals</p>
                       <p className="text-xs text-gray-500">Access exclusive offers</p>
-                    </SignedOut>
+                    </SignedOutContent>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
