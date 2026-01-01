@@ -4,7 +4,8 @@ import mongoose from 'mongoose'
 const UserSchema = new mongoose.Schema({
   googleId: {
     type: String,
-    required: true,
+    required: false,  // Not required - allows legacy users without Google login
+    sparse: true,     // Allows multiple null values while keeping uniqueness for non-null
     unique: true,
   },
   email: {
