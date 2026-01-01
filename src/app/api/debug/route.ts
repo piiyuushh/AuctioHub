@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server'
-import { auth, currentUser } from '@clerk/nextjs/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import connectToDatabase from '@/lib/mongodb'
 import { CarouselImage } from '@/lib/models'
 
 export async function GET() {
   try {
-    const { userId } = await auth()
-    const user = await currentUser()
+    const session = await getServerSession(authOptions)
     
     // Test database connection
     let dbStatus = 'unknown'
@@ -24,24 +24,23 @@ export async function GET() {
     }
     
     const adminEmails = process.env.ADMIN_EMAILS?.split(',').map(email => email.trim()) || []
-    const userEmail = user?.emailAddresses[0]?.emailAddress
+    const userEmail = session?.user?.email
     const isUserAdmin = userEmail ? adminEmails.includes(userEmail) : false
     
     return NextResponse.json({
       debug: {
         // Authentication
-        hasUserId: !!userId,
-        hasUser: !!user,
+        hasSession: !!session,
         userEmail: userEmail || 'No email',
         isUserAdmin,
         
         // Environment Variables
         adminEmailsEnv: process.env.ADMIN_EMAILS || 'NOT SET',
         adminEmailsArray: adminEmails,
-        clerkPublishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.substring(0, 20) + '...' || 'NOT SET',
-        hasClerkSecret: !!process.env.CLERK_SECRET_KEY,
-        hasDatabaseUrl: !!process.env.DATABASE_URL,
-        databaseUrlStart: process.env.DATABASE_URL?.substring(0, 30) + '...' || 'NOT SET',
+        hasNextAuthSecret: !!process.env.NEXTAUTH_SECRET,
+        hasGoogleClientId: !!process.env.GOOGLE_CLIENT_ID,
+        hasDatabaseUrl: !!process.env.MONGODB_URI,
+        databaseUrlStart: process.env.MONGODB_URI?.substring(0, 30) + '...' || 'NOT SET',
         
         // Database
         databaseStatus: dbStatus,
@@ -56,8 +55,8 @@ export async function GET() {
         // Recommendations
         issues: [
           ...(adminEmails.length === 0 ? ['ADMIN_EMAILS environment variable is empty'] : []),
-          ...(!process.env.CLERK_SECRET_KEY ? ['CLERK_SECRET_KEY environment variable is missing'] : []),
-          ...(!process.env.DATABASE_URL ? ['DATABASE_URL environment variable is missing'] : []),
+          ...(!process.env.NEXTAUTH_SECRET ? ['NEXTAUTH_SECRET environment variable is missing'] : []),
+          ...(!process.env.MONGODB_URI ? ['MONGODB_URI environment variable is missing'] : []),
           ...(dbStatus === 'failed' ? ['Database connection failed'] : []),
           ...(!isUserAdmin && userEmail ? [`User ${userEmail} is not in admin list`] : [])
         ]

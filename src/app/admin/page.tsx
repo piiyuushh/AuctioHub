@@ -1,17 +1,18 @@
 import { isAdmin } from '@/lib/admin'
-import { auth } from '@clerk/nextjs/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import AdminDashboard from '@/components/admin/AdminDashboard'
 
 export default async function AdminPage() {
   console.log('🔍 AdminPage: Starting admin check...')
   
-  const { userId } = await auth()
-  console.log('🔍 AdminPage: User ID:', userId ? 'Present' : 'None')
+  const session = await getServerSession(authOptions)
+  console.log('🔍 AdminPage: Session:', session ? 'Present' : 'None')
   
   // If not signed in at all, redirect to sign in
-  if (!userId) {
-    console.log('❌ AdminPage: No user ID, redirecting to sign-in')
+  if (!session) {
+    console.log('❌ AdminPage: No session, redirecting to sign-in')
     redirect('/sign-in')
   }
   

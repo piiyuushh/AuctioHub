@@ -1,19 +1,20 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { useUser } from '@clerk/nextjs'
+import { useSession } from 'next-auth/react'
 
 interface User {
   _id: string
-  clerkId: string
+  googleId: string
   email: string
+  name?: string
   role: 'USER' | 'ADMIN'
   createdAt: string
   updatedAt: string
 }
 
 export default function UserManager() {
-  const { user: currentUser } = useUser()
+  const { data: session } = useSession()
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
@@ -22,7 +23,7 @@ export default function UserManager() {
   const [showAddForm, setShowAddForm] = useState(false)
 
   // Get current user's email for comparison
-  const currentUserEmail = currentUser?.emailAddresses[0]?.emailAddress
+  const currentUserEmail = session?.user?.email
 
   useEffect(() => {
     fetchUsers()
@@ -129,8 +130,8 @@ export default function UserManager() {
     // Special warning for admin users
     const isAdmin = userRole === 'ADMIN'
     const confirmMessage = isAdmin 
-      ? `⚠️ WARNING: You are about to remove an ADMIN user "${userEmail}" from the system!\n\nThis will:\n- Delete them from the database\n- Remove their Clerk authentication account\n- Revoke all admin privileges\n\nNote: If this is the last admin user, the removal will be blocked to ensure system access.\n\nThis action cannot be undone. Are you absolutely sure?`
-      : `Are you sure you want to permanently remove user "${userEmail}" from the system?\n\nThis will delete them from both the database and Clerk authentication.\n\nThis action cannot be undone.`
+      ? `⚠️ WARNING: You are about to remove an ADMIN user "${userEmail}" from the system!\n\nThis will:\n- Delete them from the database\n- Revoke all admin privileges\n\nNote: If this is the last admin user, the removal will be blocked to ensure system access.\n\nThis action cannot be undone. Are you absolutely sure?`
+      : `Are you sure you want to permanently remove user "${userEmail}" from the system?\n\nThis will delete them from the database.\n\nThis action cannot be undone.`
     
     if (!window.confirm(confirmMessage)) {
       return
@@ -146,19 +147,7 @@ export default function UserManager() {
         const data = await response.json()
         
         // Show detailed success message
-        let successMessage = data.message || 'User removed successfully'
-        
-        // Check if details exist before accessing nested properties
-        if (data.details && data.details.clerkDeletion && data.details.mongoDbDeletion) {
-          const clerkStatus = data.details.clerkDeletion.success ? '✅ Clerk' : '❌ Clerk'
-          const mongoStatus = data.details.mongoDbDeletion.success ? '✅ Database' : '❌ Database'
-          successMessage += ` (${clerkStatus}, ${mongoStatus})`
-          
-          // If Clerk deletion failed but MongoDB succeeded, show warning
-          if (!data.details.clerkDeletion.success && data.details.mongoDbDeletion.success) {
-            successMessage += ` - Warning: User removed from database but Clerk deletion failed: ${data.details.clerkDeletion.message || 'Unknown error'}`
-          }
-        }
+        const successMessage = data.message || 'User removed successfully'
         
         setMessage({ type: 'success', text: successMessage })
         await fetchUsers() // Refresh the list

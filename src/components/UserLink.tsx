@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useUser } from '@clerk/nextjs'
+import { useSession } from 'next-auth/react'
 
 export function UserLink() {
-  const { isSignedIn, isLoaded } = useUser()
+  const { data: session, status } = useSession()
   const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
 
@@ -24,15 +24,15 @@ export function UserLink() {
       }
     }
 
-    if (isLoaded && isSignedIn) {
+    if (status === 'authenticated') {
       checkAdminStatus()
     } else {
       setLoading(false)
     }
-  }, [isSignedIn, isLoaded])
+  }, [status])
 
   // Don't show if user is not signed in, still loading, or is an admin
-  if (!isLoaded || !isSignedIn || loading || isAdmin) {
+  if (status !== 'authenticated' || loading || isAdmin) {
     return null
   }
 

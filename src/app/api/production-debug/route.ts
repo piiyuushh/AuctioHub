@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { auth, currentUser } from '@clerk/nextjs/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import connectToDatabase from '@/lib/mongodb'
 import { CarouselImage } from '@/lib/models'
 import { isAdmin } from '@/lib/admin'
@@ -11,22 +12,21 @@ export async function GET() {
     // Test 1: Environment Variables
     const envCheck = {
       hasMongoUri: !!process.env.MONGODB_URI,
-      hasClerkPublishable: !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
-      hasClerkSecret: !!process.env.CLERK_SECRET_KEY,
+      hasNextAuthSecret: !!process.env.NEXTAUTH_SECRET,
+      hasGoogleClientId: !!process.env.GOOGLE_CLIENT_ID,
+      hasGoogleClientSecret: !!process.env.GOOGLE_CLIENT_SECRET,
       hasAdminEmails: !!process.env.ADMIN_EMAILS,
       nodeEnv: process.env.NODE_ENV,
       mongoUriStart: process.env.MONGODB_URI?.substring(0, 20) + '...',
     }
     
     // Test 2: Authentication
-    let authTest: { hasUserId: boolean; hasUser: boolean; userEmail: string | null } = { hasUserId: false, hasUser: false, userEmail: null }
+    let authTest: { hasSession: boolean; userEmail: string | null } = { hasSession: false, userEmail: null }
     try {
-      const { userId } = await auth()
-      const user = await currentUser()
+      const session = await getServerSession(authOptions)
       authTest = {
-        hasUserId: !!userId,
-        hasUser: !!user,
-        userEmail: user?.emailAddresses[0]?.emailAddress || null
+        hasSession: !!session,
+        userEmail: session?.user?.email || null
       }
     } catch (error) {
       console.error('Auth test failed:', error)

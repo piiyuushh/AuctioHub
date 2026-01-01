@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useSession } from "next-auth/react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { FaGavel, FaHeart, FaListAlt, FaTrophy, FaChartLine, FaDollarSign, FaClock, FaStar } from "react-icons/fa";
@@ -19,7 +19,7 @@ interface UserStats {
 }
 
 export default function UserDashboard() {
-  const { user, isLoaded } = useUser();
+  const { data: session, status } = useSession();
   const [userStats] = useState<UserStats>({
     activeBids: 12,
     watchlist: 8,
@@ -31,7 +31,7 @@ export default function UserDashboard() {
     rating: "4.8",
   });
 
-  if (!isLoaded) {
+  if (status === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F7F7F7]">
         <div className="text-center">
@@ -42,7 +42,7 @@ export default function UserDashboard() {
     );
   }
 
-  if (!user) {
+  if (!session) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F7F7F7]">
         <div className="text-center">
@@ -51,6 +51,8 @@ export default function UserDashboard() {
       </div>
     );
   }
+
+  const user = session.user;
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F7F7F7]">
@@ -71,8 +73,8 @@ export default function UserDashboard() {
               <div className="flex-shrink-0">
                 <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-[#EEEEEE]">
                   <Image
-                    src={user.imageUrl || "/assets/profiles/default-avatar.png"}
-                    alt={user.fullName || "User"}
+                    src={user?.image || "/assets/profiles/default-avatar.png"}
+                    alt={user?.name || "User"}
                     fill
                     className="object-cover"
                   />
@@ -82,23 +84,23 @@ export default function UserDashboard() {
               {/* User Info */}
               <div className="flex-1 text-center md:text-left">
                 <h2 className="text-3xl font-bold text-[#393E46] mb-2">
-                  {user.fullName || "User"}
+                  {user?.name || "User"}
                 </h2>
                 <p className="text-[#929AAB] mb-4">
-                  {user.primaryEmailAddress?.emailAddress}
+                  {user?.email}
                 </p>
                 
                 <div className="flex flex-wrap gap-3 justify-center md:justify-start">
                   <div className="bg-[#F7F7F7] px-4 py-2 rounded-lg">
                     <span className="text-sm text-[#929AAB]">Member Since</span>
                     <p className="text-[#393E46] font-semibold">
-                      {user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'N/A'}
+                      {new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                     </p>
                   </div>
                   <div className="bg-[#F7F7F7] px-4 py-2 rounded-lg">
                     <span className="text-sm text-[#929AAB]">User ID</span>
                     <p className="text-[#393E46] font-semibold">
-                      {user.id.slice(0, 8)}...
+                      {user?.id?.slice(0, 8)}...
                     </p>
                   </div>
                   <div className="bg-[#F7F7F7] px-4 py-2 rounded-lg flex items-center gap-2">

@@ -1,16 +1,16 @@
 import { NextResponse } from 'next/server'
-import { auth, currentUser } from '@clerk/nextjs/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 
 export async function GET() {
   try {
-    const { userId } = await auth()
+    const session = await getServerSession(authOptions)
     
-    if (!userId) {
+    if (!session?.user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
     
-    const user = await currentUser()
-    const userEmail = user?.emailAddresses[0]?.emailAddress
+    const userEmail = session.user.email
     
     // Get environment variables
     const adminEmailsRaw = process.env.ADMIN_EMAILS

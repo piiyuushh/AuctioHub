@@ -2,7 +2,7 @@ import mongoose from 'mongoose'
 
 // User Schema
 const UserSchema = new mongoose.Schema({
-  clerkId: {
+  googleId: {
     type: String,
     required: true,
     unique: true,
@@ -11,6 +11,14 @@ const UserSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true,
+  },
+  name: {
+    type: String,
+    default: '',
+  },
+  image: {
+    type: String,
+    default: '',
   },
   role: {
     type: String,
@@ -105,8 +113,10 @@ export const AdminSetting = mongoose.models.AdminSetting || mongoose.model('Admi
 // Types for TypeScript
 export interface IUser {
   _id?: string
-  clerkId: string
+  googleId: string
   email: string
+  name?: string
+  image?: string
   role: 'USER' | 'ADMIN'
   createdAt?: Date
   updatedAt?: Date
