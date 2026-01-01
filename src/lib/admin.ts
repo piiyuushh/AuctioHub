@@ -12,14 +12,16 @@ export async function isAdmin() {
       return false
     }
     
-    const userEmail = session.user.email
+    const userEmail = session.user.email.toLowerCase()
     console.log('🔍 Checking admin status for:', userEmail)
     
     // Connect to database and check user role
     await connectToDatabase()
     
-    // Check if user exists in database and has admin role
-    const dbUser = await User.findOne({ email: userEmail })
+    // Check if user exists in database and has admin role (case-insensitive email match)
+    const dbUser = await User.findOne({ 
+      email: { $regex: new RegExp(`^${userEmail}$`, 'i') } 
+    })
     
     if (!dbUser) {
       console.log('❌ User not found in database')
@@ -56,7 +58,10 @@ export async function getCurrentUser() {
     
     await connectToDatabase()
     
-    const dbUser = await User.findOne({ email: session.user.email })
+    const userEmail = session.user.email.toLowerCase()
+    const dbUser = await User.findOne({ 
+      email: { $regex: new RegExp(`^${userEmail}$`, 'i') } 
+    })
     
     return dbUser
   } catch (error) {

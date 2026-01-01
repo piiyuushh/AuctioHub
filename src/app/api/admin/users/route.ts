@@ -9,13 +9,22 @@ export async function GET() {
     console.log('🔍 Admin Users API - GET request')
     
     // Check if user is admin
-    await requireAdmin()
+    try {
+      await requireAdmin()
+    } catch (adminError) {
+      console.log('❌ Admin check failed:', adminError)
+      return NextResponse.json(
+        { error: 'Admin access required' },
+        { status: 403 }
+      )
+    }
     
     // Connect to database
     await connectToDatabase()
     
     // Fetch all users, sorted by creation date (newest first)
     const users = await User.find({})
+      .select('_id googleId email name role createdAt updatedAt')
       .sort({ createdAt: -1 })
       .lean()
     
