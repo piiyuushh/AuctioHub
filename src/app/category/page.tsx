@@ -141,7 +141,7 @@ export default function CategoryPage() {
     formDataObj.append("file", file);
 
     try {
-      const response = await fetch("/api/admin/upload", {
+      const response = await fetch("/api/upload", {
         method: "POST",
         body: formDataObj,
       });
@@ -151,7 +151,8 @@ export default function CategoryPage() {
         setFormData((prev) => ({ ...prev, imageUrl: data.url }));
         setMessage({ type: "success", text: "Image uploaded successfully!" });
       } else {
-        setMessage({ type: "error", text: "Failed to upload image" });
+        const errorData = await response.json();
+        setMessage({ type: "error", text: errorData.error || "Failed to upload image" });
       }
     } catch (error) {
       console.error("Upload error:", error);
