@@ -5,10 +5,8 @@ import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
 import {
   CreditCardIcon,
-  BanknotesIcon,
   DevicePhoneMobileIcon,
   CheckCircleIcon,
-  ArrowLeftIcon,
   HomeIcon,
 } from "@heroicons/react/24/outline";
 import { Header } from "@/components/Header";
@@ -23,7 +21,7 @@ interface Product {
   highestBidderEmail?: string;
 }
 
-type PaymentMethod = "card" | "bank" | "mobile" | null;
+type PaymentMethod = "card" | "mobile" | null;
 
 export default function PaymentPage() {
   const { data: session } = useSession();
@@ -76,12 +74,44 @@ export default function PaymentPage() {
 
     setProcessing(true);
 
-    // Simulate payment processing
-    setTimeout(() => {
+    try {
+      if (selectedMethod === "card") {
+        // Stripe payment
+        const response = await fetch("/api/payment/create-checkout-session", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            productId: product?._id,
+            productTitle: product?.title,
+            productImage: product?.imageUrl,
+            amount: product?.currentBid || 0,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.url) {
+          // Redirect to Stripe checkout
+          window.location.href = data.url;
+        } else {
+          alert(data.error || "Failed to create checkout session");
+          setProcessing(false);
+        }
+      } else if (selectedMethod === "mobile") {
+        // Mobile payment (demo)
+        setTimeout(() => {
+          setProcessing(false);
+          alert("Mobile payment successful! Thank you for your purchase.");
+          router.push("/");
+        }, 2000);
+      }
+    } catch (error) {
+      console.error("Payment error:", error);
+      alert("An error occurred while processing payment");
       setProcessing(false);
-      alert(`Payment successful via ${selectedMethod}! Thank you for your purchase.`);
-      router.push("/");
-    }, 2000);
+    }
   };
 
   const paymentMethods = [
@@ -89,19 +119,13 @@ export default function PaymentPage() {
       id: "card" as PaymentMethod,
       name: "Credit/Debit Card",
       icon: CreditCardIcon,
-      description: "Pay securely with your card",
-    },
-    {
-      id: "bank" as PaymentMethod,
-      name: "Bank Transfer",
-      icon: BanknotesIcon,
-      description: "Direct bank transfer",
+      description: "Pay securely with Stripe",
     },
     {
       id: "mobile" as PaymentMethod,
       name: "Mobile Payment",
       icon: DevicePhoneMobileIcon,
-      description: "Pay with mobile wallet",
+      description: "Pay with mobile wallet (Demo)",
     },
   ];
 
@@ -238,10 +262,17 @@ export default function PaymentPage() {
             </div>
 
             {/* Payment Info */}
-            {selectedMethod && (
+            {selectedMethod === "card" && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                 <p className="text-sm text-blue-800">
-                  <strong>Note:</strong> This is a demo payment system. In production, this would integrate with a real payment gateway like Stripe, PayPal, or local payment providers.
+                  <strong>Secure Stripe Payment:</strong> You will be redirected to Stripe's secure checkout page to complete your payment.
+                </p>
+              </div>
+            )}
+            {selectedMethod === "mobile" && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <p className="text-sm text-blue-800">
+                  <strong>Note:</strong> Mobile payment is a demo feature. In production, this would integrate with local mobile payment providers.
                 </p>
               </div>
             )}
