@@ -1,763 +1,971 @@
 "use client";
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import { 
-  ShoppingCartIcon, 
-  StarIcon, 
-  MagnifyingGlassIcon,
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import {
+  ShoppingBagIcon,
+  PlusIcon,
+  PencilIcon,
+  TrashIcon,
   XMarkIcon,
-  HeartIcon,
-  EyeIcon,
-  Bars3Icon
-} from "@heroicons/react/24/solid";
-import { 
-  Squares2X2Icon,
-  ListBulletIcon
+  PhotoIcon,
+  ClockIcon,
+  CurrencyDollarIcon,
+  FireIcon,
+  StopIcon,
+  ArrowPathIcon,
 } from "@heroicons/react/24/outline";
 import { Header } from "@/components/Header";
 import Footer from "@/components/Footer";
-import SearchBar from "@/components/SearchBar";
 
-const filters = {
-  categories: ["Home & Interior", "Garden", "Technology", "Toys", "Gaming", "Fashion", "Books", "Sports"],
-  ratings: [5, 4, 3, 2, 1],
-  discounts: ["0-10%", "10-20%", "20-30%", "30% and above"],
-  sortOptions: [
-    { value: "relevance", label: "Most Relevant" },
-    { value: "price-low", label: "Price: Low to High" },
-    { value: "price-high", label: "Price: High to Low" },
-    { value: "name", label: "Name A-Z" },
-    { value: "rating", label: "Highest Rated" }
-  ]
-};
+const staticProducts = [
+  {
+    id: "static-1",
+    title: "Premium Wireless Headphones",
+    description: "High-quality sound with noise cancellation.",
+    imageUrl: "/assets/products/1.png",
+    isStatic: true,
+  },
+  {
+    id: "static-2",
+    title: "Smart Watch Series X",
+    description: "Track your fitness goals with advanced health monitoring.",
+    imageUrl: "/assets/products/2.png",
+    isStatic: true,
+  },
+  {
+    id: "static-3",
+    title: "Professional Camera Kit",
+    description: "Capture stunning photos with professional-grade camera.",
+    imageUrl: "/assets/products/3.png",
+    isStatic: true,
+  },
+];
 
-const products = [...Array(12)].map((_, index) => ({
-  id: index + 1,
-  name: `Premium Product ${index + 1}`,
-  description: `High-quality product with excellent features and modern design. Perfect for daily use.`,
-  price: 1000 + (index * 500),
-  originalPrice: 1200 + (index * 600),
-  image: `/assets/products/${(index % 6) + 1}.png`,
-  rating: 3 + Math.floor(Math.random() * 3),
-  discount: Math.floor(Math.random() * 40) + 10,
-  inStock: Math.random() > 0.2,
-  category: filters.categories[index % filters.categories.length],
-  isNew: index < 3,
-  isFeatured: index % 4 === 0
-}));
+interface Product {
+  _id?: string;
+  id?: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  userEmail?: string;
+  userId?: string;
+  isStatic?: boolean;
+  hasAuction?: boolean;
+  auctionEndTime?: string;
+  startingBid?: number;
+  currentBid?: number;
+  highestBidder?: string | null;
+  highestBidderEmail?: string | null;
+  totalBids?: number;
+  auctionStatus?: string;
+}
 
-const CategoryPage: React.FC = () => {
-  const [selectedRating, setSelectedRating] = useState<number | null>(null);
-  const [selectedDiscount, setSelectedDiscount] = useState<string | null>(null);
-  const [showFilters, setShowFilters] = useState(false);
-  const [selectedPrice, setSelectedPrice] = useState<number>(0);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState("relevance");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [showOnlyInStock, setShowOnlyInStock] = useState(false);
+export default function CategoryPage() {
+  const { data: session } = useSession();
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<"buyer" | "seller">("buyer");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [myProducts, setMyProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [showBidModal, setShowBidModal] = useState(false);
+  const [bidAmount, setBidAmount] = useState("");
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    imageUrl: "",
+    hasAuction: false,
+    auctionDurationMinutes: 30,
+    startingBid: 0,
+  });
+  const [uploading, setUploading] = useState(false);
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  // Prevent body scroll when filter menu is open
   useEffect(() => {
-    if (showFilters) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
+    fetchProducts();
+    if (session) {
+      fetchMyProducts();
     }
-    
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [showFilters]);
+  }, [session]);
 
-  // Enhanced search and filter logic
-  const filteredProducts = useMemo(() => {
-    let filtered = products;
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setProducts((prev) => [...prev]);
+      setMyProducts((prev) => [...prev]);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
-    // Search filter
-    if (searchQuery.trim()) {
-      filtered = filtered.filter(product =>
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.category.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+  const fetchProducts = async () => {
+    try {
+      const response = await fetch("/api/products");
+      if (response.ok) {
+        const data = await response.json();
+        setProducts(data.length > 0 ? data : staticProducts);
+      }
+    } catch (error) {
+      console.error("Error fetching products:", error);
+      setProducts(staticProducts);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchMyProducts = async () => {
+    try {
+      const response = await fetch("/api/products/my-products");
+      if (response.ok) {
+        const data = await response.json();
+        setMyProducts(data);
+      }
+    } catch (error) {
+      console.error("Error fetching my products:", error);
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage({ type: "error", text: "Image size must be less than 5MB" });
+      return;
     }
 
-    // Category filter
-    if (selectedCategories.length > 0) {
-      filtered = filtered.filter(product =>
-        selectedCategories.includes(product.category)
-      );
-    }
+    setUploading(true);
+    const formDataObj = new FormData();
+    formDataObj.append("file", file);
 
-    // Price filter
-    if (selectedPrice > 0) {
-      filtered = filtered.filter(product => product.price <= selectedPrice);
-    }
-
-    // Rating filter
-    if (selectedRating) {
-      filtered = filtered.filter(product => product.rating >= selectedRating);
-    }
-
-    // Discount filter
-    if (selectedDiscount) {
-      const [min, max] = selectedDiscount.split('-').map(s => parseInt(s.replace('%', '').replace(' and above', '')));
-      filtered = filtered.filter(product => {
-        if (selectedDiscount.includes('and above')) {
-          return product.discount >= min;
-        }
-        return product.discount >= min && product.discount <= (max || min + 10);
+    try {
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formDataObj,
       });
+
+      if (response.ok) {
+        const data = await response.json();
+        setFormData((prev) => ({ ...prev, imageUrl: data.url }));
+        setMessage({ type: "success", text: "Image uploaded successfully!" });
+      } else {
+        const errorData = await response.json();
+        setMessage({ type: "error", text: errorData.error || "Failed to upload image" });
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      setMessage({ type: "error", text: "Error uploading image" });
+    } finally {
+      setUploading(false);
     }
-
-    // Stock filter
-    if (showOnlyInStock) {
-      filtered = filtered.filter(product => product.inStock);
-    }
-
-    // Sorting
-    switch (sortBy) {
-      case "price-low":
-        filtered.sort((a, b) => a.price - b.price);
-        break;
-      case "price-high":
-        filtered.sort((a, b) => b.price - a.price);
-        break;
-      case "name":
-        filtered.sort((a, b) => a.name.localeCompare(b.name));
-        break;
-      case "rating":
-        filtered.sort((a, b) => b.rating - a.rating);
-        break;
-      default:
-        // Keep original order for relevance
-        break;
-    }
-
-    return filtered;
-  }, [searchQuery, selectedCategories, selectedPrice, selectedRating, selectedDiscount, showOnlyInStock, sortBy]);
-
-  const toggleCategory = (category: string) => {
-    setSelectedCategories(prev => 
-      prev.includes(category) 
-        ? prev.filter(c => c !== category)
-        : [...prev, category]
-    );
   };
 
-  const clearAllFilters = () => {
-    setSelectedRating(null);
-    setSelectedDiscount(null);
-    setSelectedPrice(0);
-    setSelectedCategories([]);
-    setSearchQuery("");
-    setShowOnlyInStock(false);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!session) {
+      router.push("/sign-in");
+      return;
+    }
+
+    if (!formData.title || !formData.description || !formData.imageUrl) {
+      setMessage({ type: "error", text: "All fields are required" });
+      return;
+    }
+
+    try {
+      const url = "/api/products";
+      const method = editingProduct ? "PUT" : "POST";
+      
+      // Convert minutes to hours for API
+      const bodyData = {
+        ...formData,
+        auctionDurationHours: formData.auctionDurationMinutes / 60,
+      };
+      delete (bodyData as any).auctionDurationMinutes;
+      
+      const body = editingProduct
+        ? { ...bodyData, productId: editingProduct._id }
+        : bodyData;
+
+      const response = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (response.ok) {
+        setMessage({
+          type: "success",
+          text: editingProduct ? "Product updated!" : "Product added successfully!",
+        });
+        setFormData({
+          title: "",
+          description: "",
+          imageUrl: "",
+          hasAuction: false,
+          auctionDurationMinutes: 30,
+          startingBid: 0,
+        });
+        setShowAddForm(false);
+        setEditingProduct(null);
+        fetchProducts();
+        fetchMyProducts();
+      } else {
+        const data = await response.json();
+        setMessage({ type: "error", text: data.error || "Failed to save product" });
+      }
+    } catch (error) {
+      console.error("Error saving product:", error);
+      setMessage({ type: "error", text: "Error saving product" });
+    }
   };
 
-  const activeFiltersCount = 
-    (selectedRating ? 1 : 0) +
-    (selectedDiscount ? 1 : 0) +
-    (selectedPrice > 0 ? 1 : 0) +
-    selectedCategories.length +
-    (showOnlyInStock ? 1 : 0);
+  const handleBid = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!session) {
+      router.push("/sign-in");
+      return;
+    }
+
+    if (!selectedProduct || !bidAmount) {
+      setMessage({ type: "error", text: "Please enter a bid amount" });
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/products/bid", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productId: selectedProduct._id,
+          bidAmount: parseFloat(bidAmount),
+        }),
+      });
+
+      if (response.ok) {
+        setMessage({ type: "success", text: "Bid placed successfully!" });
+        setShowBidModal(false);
+        setBidAmount("");
+        setSelectedProduct(null);
+        fetchProducts();
+      } else {
+        const data = await response.json();
+        setMessage({ type: "error", text: data.error || "Failed to place bid" });
+      }
+    } catch (error) {
+      console.error("Error placing bid:", error);
+      setMessage({ type: "error", text: "Error placing bid" });
+    }
+  };
+
+  const handleEndAuction = async (productId: string) => {
+    if (!confirm("Are you sure you want to end this auction?")) return;
+
+    try {
+      const response = await fetch("/api/products", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId, endAuction: true }),
+      });
+
+      if (response.ok) {
+        setMessage({ type: "success", text: "Auction ended successfully!" });
+        fetchProducts();
+        fetchMyProducts();
+      } else {
+        setMessage({ type: "error", text: "Failed to end auction" });
+      }
+    } catch (error) {
+      console.error("Error ending auction:", error);
+      setMessage({ type: "error", text: "Error ending auction" });
+    }
+  };
+
+  const handleExtendAuction = async (productId: string, hours: number) => {
+    try {
+      const response = await fetch("/api/products", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId, extendAuction: true, extensionHours: hours }),
+      });
+
+      if (response.ok) {
+        setMessage({ type: "success", text: `Auction extended by ${hours} hours!` });
+        fetchProducts();
+        fetchMyProducts();
+      } else {
+        setMessage({ type: "error", text: "Failed to extend auction" });
+      }
+    } catch (error) {
+      console.error("Error extending auction:", error);
+      setMessage({ type: "error", text: "Error extending auction" });
+    }
+  };
+
+  const handleDelete = async (productId: string) => {
+    if (!confirm("Are you sure you want to delete this product?")) return;
+
+    try {
+      const response = await fetch(`/api/products?id=${productId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        setMessage({ type: "success", text: "Product deleted successfully!" });
+        fetchProducts();
+        fetchMyProducts();
+      } else {
+        setMessage({ type: "error", text: "Failed to delete product" });
+      }
+    } catch (error) {
+      console.error("Error deleting product:", error);
+      setMessage({ type: "error", text: "Error deleting product" });
+    }
+  };
+
+  const getTimeRemaining = (endTime: string) => {
+    const now = new Date().getTime();
+    const end = new Date(endTime).getTime();
+    const diff = end - now;
+
+    if (diff <= 0) return "Ended";
+
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+    if (hours > 24) {
+      const days = Math.floor(hours / 24);
+      return `${days}d ${hours % 24}h`;
+    }
+    return `${hours}h ${minutes}m ${seconds}s`;
+  };
+
+  const closeForm = () => {
+    setShowAddForm(false);
+    setEditingProduct(null);
+    setFormData({
+      title: "",
+      description: "",
+      imageUrl: "",
+      hasAuction: false,
+      auctionDurationMinutes: 30,
+      startingBid: 0,
+    });
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Header />
 
-      {/* Hero Section with Enhanced Search */}
-      <section className="bg-gray-50 py-12 md:py-16">
-        <div className="container mx-auto px-4 xl:px-8 2xl:px-0 2xl:max-w-[1800px] 2xl:mx-auto">
-          <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-3xl md:text-5xl font-bold text-black mb-4">
-              Explore Our Products
-            </h1>
-            <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
-              Find exactly what you&apos;re looking for from our curated collection of quality products
-            </p>
-            
-            {/* Enhanced Search Bar - Using SearchBar Component */}
-            <SearchBar
-              value={searchQuery}
-              onChange={setSearchQuery}
-              placeholder="Search products, categories, or brands..."
-              size="large"
-              className="max-w-2xl mx-auto"
-              showResults={true}
-              results={searchQuery.length > 0 ? filteredProducts.slice(0, 5) : []}
-              renderResult={(product) => (
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 relative flex-shrink-0">
-                    <Image
-                      src={product.image || '/assets/products/1.png'}
-                      alt={product.name || 'Product'}
-                      fill
-                      className="object-cover rounded-lg"
-                      sizes="48px"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-black text-sm truncate">{product.name}</p>
-                    <p className="text-xs text-gray-500 truncate">{product.category || ''}</p>
-                    <div className="flex items-center mt-1">
-                      <div className="flex">
-                        {[...Array(5)].map((_, i) => (
-                          <StarIcon
-                            key={i}
-                            className={`h-3 w-3 ${
-                              i < (product.rating || 0) ? "text-black" : "text-gray-300"
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      <span className="ml-1 text-xs text-gray-500">({product.rating || 0})</span>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold text-black text-sm">Rs. {(product.price || 0).toLocaleString()}</p>
-                    {(product.discount || 0) > 0 && (
-                      <p className="text-xs text-gray-500 line-through">
-                        Rs. {(product.originalPrice || 0).toLocaleString()}
-                      </p>
-                    )}
-                    {product.inStock === false && (
-                      <p className="text-xs text-red-500 font-medium">Out of Stock</p>
-                    )}
-                  </div>
-                </div>
-              )}
-            />
-          </div>
+      <section className="bg-gradient-to-r from-black to-gray-800 text-white py-16">
+        <div className="container mx-auto px-4 xl:px-8 2xl:px-0 2xl:max-w-[1800px]">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">Auction Marketplace</h1>
+          <p className="text-lg text-gray-300 max-w-2xl">
+            Browse products, join auctions, or list your own items
+          </p>
         </div>
       </section>
 
-      {/* Enhanced Filter & Sort Bar */}
       <section className="bg-white border-b border-gray-200 sticky top-[73px] z-40">
-        <div className="container mx-auto px-4 xl:px-8 2xl:px-0 2xl:max-w-[1800px] 2xl:mx-auto py-4">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div className="flex items-center gap-4 flex-wrap">
-              {/* Hamburger Filter Menu Button - Works on both PC and Mobile */}
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center px-4 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-all duration-300 group shadow-sm"
-              >
-                <Bars3Icon className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform" />
-                <span className="font-medium">Filters</span>
-                {activeFiltersCount > 0 && (
-                  <span className="ml-2 bg-white text-black text-xs px-2 py-1 rounded-full font-bold animate-pulse">
-                    {activeFiltersCount}
-                  </span>
-                )}
-              </button>
-
-              {/* Quick Filter Tags */}
-              <div className="flex items-center gap-2 flex-wrap">
-                {selectedCategories.map((category) => (
-                  <span key={category} className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-800 text-sm rounded-full border">
-                    {category}
-                    <button
-                      onClick={() => toggleCategory(category)}
-                      className="ml-2 text-gray-600 hover:text-black transition-colors"
-                    >
-                      <XMarkIcon className="h-3 w-3" />
-                    </button>
-                  </span>
-                ))}
-                
-                {selectedRating && (
-                  <span className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-800 text-sm rounded-full border">
-                    {selectedRating}+ Stars
-                    <button
-                      onClick={() => setSelectedRating(null)}
-                      className="ml-2 text-gray-600 hover:text-black transition-colors"
-                    >
-                      <XMarkIcon className="h-3 w-3" />
-                    </button>
-                  </span>
-                )}
-                
-                {selectedDiscount && (
-                  <span className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-800 text-sm rounded-full border">
-                    {selectedDiscount} off
-                    <button
-                      onClick={() => setSelectedDiscount(null)}
-                      className="ml-2 text-gray-600 hover:text-black transition-colors"
-                    >
-                      <XMarkIcon className="h-3 w-3" />
-                    </button>
-                  </span>
-                )}
-                
-                {selectedPrice > 0 && (
-                  <span className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-800 text-sm rounded-full border">
-                    Under Rs. {selectedPrice.toLocaleString()}
-                    <button
-                      onClick={() => setSelectedPrice(0)}
-                      className="ml-2 text-gray-600 hover:text-black transition-colors"
-                    >
-                      <XMarkIcon className="h-3 w-3" />
-                    </button>
-                  </span>
-                )}
-                
-                {showOnlyInStock && (
-                  <span className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-800 text-sm rounded-full border">
-                    In Stock Only
-                    <button
-                      onClick={() => setShowOnlyInStock(false)}
-                      className="ml-2 text-gray-600 hover:text-black transition-colors"
-                    >
-                      <XMarkIcon className="h-3 w-3" />
-                    </button>
-                  </span>
-                )}
-                
-                {activeFiltersCount > 0 && (
-                  <button
-                    onClick={clearAllFilters}
-                    className="text-sm text-gray-600 hover:text-black underline font-medium"
-                  >
-                    Clear all ({activeFiltersCount})
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4 w-full sm:w-auto">
-              {/* View Mode Toggle */}
-              <div className="flex border border-gray-300 rounded-lg overflow-hidden">
-                <button
-                  onClick={() => setViewMode("grid")}
-                  className={`p-2 transition-colors ${
-                    viewMode === "grid" ? "bg-black text-white" : "bg-white text-gray-600 hover:bg-gray-50"
-                  }`}
-                >
-                  <Squares2X2Icon className="h-5 w-5" />
-                </button>
-                <button
-                  onClick={() => setViewMode("list")}
-                  className={`p-2 transition-colors ${
-                    viewMode === "list" ? "bg-black text-white" : "bg-white text-gray-600 hover:bg-gray-50"
-                  }`}
-                >
-                  <ListBulletIcon className="h-5 w-5" />
-                </button>
-              </div>
-
-              {/* Sort Dropdown */}
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black bg-white text-black text-sm min-w-0"
-              >
-                {filters.sortOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-
-              {/* Results Count */}
-              <span className="text-sm text-gray-600 whitespace-nowrap hidden lg:block">
-                {filteredProducts.length} of {products.length}
-              </span>
-            </div>
+        <div className="container mx-auto px-4 xl:px-8 2xl:px-0 2xl:max-w-[1800px]">
+          <div className="flex gap-1">
+            <button
+              onClick={() => setActiveTab("buyer")}
+              className={`flex items-center gap-2 px-6 py-4 font-semibold transition-all ${
+                activeTab === "buyer"
+                  ? "text-black border-b-2 border-black"
+                  : "text-gray-500 hover:text-black"
+              }`}
+            >
+              <ShoppingBagIcon className="h-5 w-5" />
+              Buyer
+            </button>
+            <button
+              onClick={() => {
+                if (!session) {
+                  router.push("/sign-in");
+                  return;
+                }
+                setActiveTab("seller");
+              }}
+              className={`flex items-center gap-2 px-6 py-4 font-semibold transition-all ${
+                activeTab === "seller"
+                  ? "text-black border-b-2 border-black"
+                  : "text-gray-500 hover:text-black"
+              }`}
+            >
+              <PlusIcon className="h-5 w-5" />
+              Seller
+            </button>
           </div>
         </div>
       </section>
 
-      {/* Main Content */}
-      <div className="flex-1 container mx-auto px-4 xl:px-8 2xl:px-0 2xl:max-w-[1800px] 2xl:mx-auto py-8">
-        <div className="relative">
-          {/* Enhanced Hamburger Filter Menu Overlay - Works on PC and Mobile */}
+      {message && (
+        <div className="container mx-auto px-4 xl:px-8 2xl:px-0 2xl:max-w-[1800px] mt-4">
           <div
-            className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-50 transition-opacity duration-300 ${
-              showFilters ? "opacity-100" : "opacity-0 pointer-events-none"
+            className={`p-4 rounded-lg flex items-center justify-between ${
+              message.type === "success"
+                ? "bg-green-50 text-green-800 border border-green-200"
+                : "bg-red-50 text-red-800 border border-red-200"
             }`}
-            onClick={() => setShowFilters(false)}
           >
-            {/* Filter Panel - Responsive width */}
-            <div
-              className={`absolute top-0 left-0 w-full sm:w-96 lg:w-[400px] max-w-[90vw] h-full bg-white shadow-2xl transform transition-transform duration-300 ease-out overflow-y-auto ${
-                showFilters ? "translate-x-0" : "-translate-x-full"
-              }`}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Filter Menu Header */}
-              <div className="flex items-center justify-between p-4 lg:p-6 border-b border-gray-200 bg-gray-50 sticky top-0 z-10">
-                <div>
-                  <h2 className="text-xl lg:text-2xl font-bold text-black">Filters</h2>
-                  <p className="text-sm text-gray-600">
-                    {activeFiltersCount} active filter{activeFiltersCount !== 1 ? 's' : ''}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setShowFilters(false)}
-                  className="p-2 rounded-full hover:bg-gray-200 transition-colors touch-manipulation"
-                  aria-label="Close filters"
-                >
-                  <XMarkIcon className="h-6 w-6 text-gray-600" />
-                </button>
-              </div>
-
-              {/* Filter Menu Content */}
-              <div className="p-4 lg:p-6 space-y-6 lg:space-y-8">
-                {/* Quick Actions */}
-                <div className="flex gap-3">
-                  <button
-                    onClick={clearAllFilters}
-                    disabled={activeFiltersCount === 0}
-                    className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:border-black hover:text-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium touch-manipulation"
-                  >
-                    Clear All
-                  </button>
-                  <button
-                    onClick={() => setShowFilters(false)}
-                    className="flex-1 px-4 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium touch-manipulation"
-                  >
-                    Apply Filters
-                  </button>
-                </div>
-
-                {/* In Stock Toggle */}
-                <div className="pb-6 border-b border-gray-100">
-                  <label className="flex items-center justify-between cursor-pointer group touch-manipulation">
-                    <div>
-                      <span className="text-black font-semibold text-base lg:text-lg">Show only in stock</span>
-                      <p className="text-sm text-gray-500">Hide out of stock items</p>
-                    </div>
-                    <input 
-                      type="checkbox" 
-                      className="w-5 h-5 lg:w-6 lg:h-6 text-black bg-white border-2 border-gray-300 rounded focus:ring-black focus:ring-2"
-                      checked={showOnlyInStock}
-                      onChange={(e) => setShowOnlyInStock(e.target.checked)}
-                    />
-                  </label>
-                </div>
-
-                {/* Categories */}
-                <div className="pb-6 border-b border-gray-100">
-                  <h3 className="font-bold text-black mb-6 text-lg">Categories</h3>
-                  <div className="space-y-4 max-h-48 overflow-y-auto">
-                    {filters.categories.map((category, index) => (
-                      <label key={index} className="flex items-center justify-between cursor-pointer group">
-                        <div className="flex items-center">
-                          <input 
-                            type="checkbox" 
-                            className="w-5 h-5 text-black bg-white border-2 border-gray-300 rounded focus:ring-black focus:ring-2"
-                            checked={selectedCategories.includes(category)}
-                            onChange={() => toggleCategory(category)}
-                          />
-                          <span className="ml-3 text-gray-700 group-hover:text-black transition-colors font-medium">
-                            {category}
-                          </span>
-                        </div>
-                        <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                          {products.filter(p => p.category === category).length}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Price Range */}
-                <div className="pb-6 border-b border-gray-100">
-                  <h3 className="font-bold text-black mb-6 text-lg">Price Range</h3>
-                  <div className="space-y-4">
-                    <input
-                      type="range"
-                      min="0"
-                      max="10000"
-                      step="500"
-                      className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                      value={selectedPrice}
-                      onChange={(e) => setSelectedPrice(Number(e.target.value))}
-                    />
-                    <div className="flex justify-between text-sm font-medium">
-                      <span className="text-gray-600">Rs. 0</span>
-                      <span className="px-3 py-1 bg-black text-white rounded-lg text-sm">
-                        Rs. {selectedPrice === 0 ? "Any" : selectedPrice.toLocaleString()}
-                      </span>
-                      <span className="text-gray-600">Rs. 10,000+</span>
-                    </div>
-                    {selectedPrice > 0 && (
-                      <p className="text-sm text-gray-600 text-center">
-                        Showing products up to Rs. {selectedPrice.toLocaleString()}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Customer Rating */}
-                <div className="pb-6 border-b border-gray-100">
-                  <h3 className="font-bold text-black mb-6 text-lg">Customer Rating</h3>
-                  <div className="space-y-4">
-                    {filters.ratings.map((rating) => (
-                      <label key={rating} className="flex items-center justify-between cursor-pointer group">
-                        <div className="flex items-center">
-                          <input
-                            type="radio"
-                            name="rating"
-                            className="w-5 h-5 text-black bg-white border-2 border-gray-300 focus:ring-black focus:ring-2"
-                            checked={selectedRating === rating}
-                            onChange={() => setSelectedRating(rating)}
-                          />
-                          <div className="ml-3 flex items-center">
-                            <div className="flex">
-                              {[...Array(5)].map((_, i) => (
-                                <StarIcon
-                                  key={i}
-                                  className={`h-5 w-5 ${
-                                    i < rating ? "text-black" : "text-gray-300"
-                                  }`}
-                                />
-                              ))}
-                            </div>
-                            <span className="ml-2 text-gray-700 text-sm font-medium">& up</span>
-                          </div>
-                        </div>
-                        <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                          {products.filter(p => p.rating >= rating).length}
-                        </span>
-                      </label>
-                    ))}
-                    {selectedRating && (
-                      <button
-                        onClick={() => setSelectedRating(null)}
-                        className="text-sm text-gray-600 hover:text-black underline"
-                      >
-                        Clear rating filter
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Discount Range */}
-                <div className="pb-6">
-                  <h3 className="font-bold text-black mb-6 text-lg">Discount Range</h3>
-                  <div className="space-y-4">
-                    {filters.discounts.map((discount) => (
-                      <label key={discount} className="flex items-center cursor-pointer group">
-                        <input
-                          type="radio"
-                          name="discount"
-                          className="w-5 h-5 text-black bg-white border-2 border-gray-300 focus:ring-black focus:ring-2"
-                          checked={selectedDiscount === discount}
-                          onChange={() => setSelectedDiscount(discount)}
-                        />
-                        <span className="ml-3 text-gray-700 group-hover:text-black transition-colors font-medium">
-                          {discount} off
-                        </span>
-                      </label>
-                    ))}
-                    {selectedDiscount && (
-                      <button
-                        onClick={() => setSelectedDiscount(null)}
-                        className="text-sm text-gray-600 hover:text-black underline"
-                      >
-                        Clear discount filter
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Filter Menu Footer */}
-              <div className="p-6 border-t border-gray-200 bg-gray-50 sticky bottom-0">
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setShowFilters(false)}
-                    className="flex-1 px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
-                  >
-                    Show {filteredProducts.length} Products
-                  </button>
-                </div>
-              </div>
-            </div>
+            <span>{message.text}</span>
+            <button onClick={() => setMessage(null)}>
+              <XMarkIcon className="h-5 w-5" />
+            </button>
           </div>
+        </div>
+      )}
 
-          {/* Product Grid */}
-          <main className="w-full">
-            {/* Search Results Info */}
-            {searchQuery && (
-              <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <h3 className="font-semibold text-black mb-1">
-                  Search results for &quot;{searchQuery}&quot;
-                </h3>
-                <p className="text-sm text-gray-600">
-                  {filteredProducts.length} products found
-                </p>
+      <div className="flex-1 container mx-auto px-4 xl:px-8 2xl:px-0 2xl:max-w-[1800px] py-8">
+        {activeTab === "buyer" && (
+          <div>
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-black mb-2">Browse Products & Auctions</h2>
+              <p className="text-gray-600">
+                {products.some((p) => !p.isStatic)
+                  ? "Join live auctions or buy products directly"
+                  : "Sample products - sellers can add their own!"}
+              </p>
+            </div>
+
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto"></div>
+                <p className="mt-4 text-gray-600">Loading products...</p>
               </div>
-            )}
+            ) : products.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {products.map((product) => {
+                  const timeRemaining = product.hasAuction && product.auctionEndTime 
+                    ? getTimeRemaining(product.auctionEndTime)
+                    : null;
+                  const isEnded = timeRemaining === "Ended" || product.auctionStatus === "ended";
+                  const isMyProduct = session?.user?.email === product.userEmail;
 
-            {/* Products */}
-            {filteredProducts.length > 0 ? (
-              <div className={`${
-                viewMode === "grid" 
-                  ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6" 
-                  : "space-y-4"
-              }`}>
-                {filteredProducts.map((product) => (
-                  <div
-                    key={product.id}
-                    className={`bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg hover:border-gray-300 transition-all duration-300 group ${
-                      viewMode === "list" ? "flex" : ""
-                    }`}
-                  >
-                    {/* Product Image */}
-                    <div className={`relative ${
-                      viewMode === "list" ? "w-48 h-48 flex-shrink-0" : "aspect-square"
-                    }`}>
-                      <Image
-                        src={product.image}
-                        alt={product.name}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-300"
-                        sizes={viewMode === "list" ? "192px" : "(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"}
-                      />
-                      
-                      {/* Badges */}
-                      <div className="absolute top-3 left-3 flex flex-col gap-2">
-                        {product.isNew && (
-                          <span className="bg-black text-white text-xs font-bold px-2 py-1 rounded">
-                            NEW
-                          </span>
-                        )}
-                        {product.discount > 0 && (
-                          <span className="bg-white text-black text-xs font-bold px-2 py-1 rounded border border-gray-300">
-                            -{product.discount}%
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        <button className="w-9 h-9 bg-white rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors shadow-md border border-gray-200">
-                          <HeartIcon className="h-4 w-4 text-gray-600" />
-                        </button>
-                        <button className="w-9 h-9 bg-white rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors shadow-md border border-gray-200">
-                          <EyeIcon className="h-4 w-4 text-gray-600" />
-                        </button>
-                      </div>
-
-                      {/* Out of Stock Overlay */}
-                      {!product.inStock && (
-                        <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center">
-                          <span className="bg-white text-black text-sm font-bold px-4 py-2 rounded-lg">
-                            Out of Stock
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Product Info */}
-                    <div className="p-4 flex-1">
-                      <div className="mb-3">
-                        <p className="text-xs text-gray-500 uppercase tracking-wider font-medium">{product.category}</p>
-                        <h3 className="font-bold text-black text-sm mb-2 line-clamp-2 group-hover:text-gray-700 transition-colors">
-                          {product.name}
-                        </h3>
-                        {viewMode === "list" && (
-                          <p className="text-sm text-gray-600 line-clamp-3 mb-3">
-                            {product.description}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Rating */}
-                      <div className="flex items-center mb-3">
-                        <div className="flex">
-                          {[...Array(5)].map((_, i) => (
-                            <StarIcon
-                              key={i}
-                              className={`h-4 w-4 ${
-                                i < product.rating ? "text-black" : "text-gray-300"
-                              }`}
-                            />
-                          ))}
-                        </div>
-                        <span className="ml-2 text-xs text-gray-600 font-medium">({product.rating})</span>
-                      </div>
-                      
-                      {/* Price and Actions */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg font-bold text-black">
-                              Rs. {product.price.toLocaleString()}
+                  return (
+                    <div
+                      key={product._id || product.id}
+                      className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 group"
+                    >
+                      <div className="relative aspect-square">
+                        <Image
+                          src={product.imageUrl}
+                          alt={product.title}
+                          fill
+                          className="object-cover group-hover:scale-105 transition-transform duration-300"
+                          sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                        />
+                        {product.isStatic && (
+                          <div className="absolute top-3 left-3">
+                            <span className="bg-gray-900 text-white text-xs font-bold px-2 py-1 rounded">
+                              SAMPLE
                             </span>
-                            {product.discount > 0 && (
-                              <span className="text-sm text-gray-500 line-through">
-                                Rs. {product.originalPrice.toLocaleString()}
+                          </div>
+                        )}
+                        {product.hasAuction && !product.isStatic && (
+                          <div className="absolute top-3 left-3">
+                            <span className={`text-white text-xs font-bold px-2 py-1 rounded flex items-center gap-1 ${
+                              isEnded ? "bg-gray-600" : "bg-red-600 animate-pulse"
+                            }`}>
+                              <FireIcon className="h-3 w-3" />
+                              {isEnded ? "ENDED" : "LIVE AUCTION"}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="p-4">
+                        <h3 className="font-bold text-black text-lg mb-2 line-clamp-2">
+                          {product.title}
+                        </h3>
+                        <p className="text-sm text-gray-600 line-clamp-2 mb-4">
+                          {product.description}
+                        </p>
+
+                        {product.hasAuction && !product.isStatic && (
+                          <div className="space-y-2 mb-4">
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-gray-600">Current Bid:</span>
+                              <span className="font-bold text-green-600">
+                                Rs. {(product.currentBid || product.startingBid || 0).toLocaleString()}
                               </span>
+                            </div>
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-gray-600">Total Bids:</span>
+                              <span className="font-semibold">{product.totalBids || 0}</span>
+                            </div>
+                            {timeRemaining && (
+                              <div className={`flex items-center gap-2 p-2 rounded ${
+                                isEnded ? "bg-gray-100" : "bg-red-50"
+                              }`}>
+                                <ClockIcon className={`h-4 w-4 ${
+                                  isEnded ? "text-gray-600" : "text-red-600"
+                                }`} />
+                                <span className={`text-sm font-semibold ${
+                                  isEnded ? "text-gray-600" : "text-red-600"
+                                }`}>
+                                  {timeRemaining}
+                                </span>
+                              </div>
                             )}
                           </div>
-                          <div className="flex items-center gap-2 mt-1">
-                            {product.inStock ? (
-                              <span className="text-xs text-green-600 font-medium">✓ In Stock</span>
-                            ) : (
-                              <span className="text-xs text-red-600 font-medium">✗ Out of Stock</span>
-                            )}
-                            {product.discount > 0 && (
-                              <span className="text-xs text-green-600 font-medium">
-                                Save Rs. {(product.originalPrice - product.price).toLocaleString()}
-                              </span>
-                            )}
+                        )}
+
+                        {!product.isStatic && product.userEmail && (
+                          <p className="text-xs text-gray-500 mb-3">Seller: {product.userEmail}</p>
+                        )}
+
+                        {product.hasAuction && !product.isStatic && !isEnded && !isMyProduct && (
+                          <div className="space-y-2">
+                            <button
+                              onClick={() => {
+                                if (!session) {
+                                  router.push("/sign-in");
+                                  return;
+                                }
+                                router.push(`/auction/${product._id}`);
+                              }}
+                              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
+                            >
+                              <CurrencyDollarIcon className="h-5 w-5" />
+                              Join Auction
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (!session) {
+                                  router.push("/sign-in");
+                                  return;
+                                }
+                                setSelectedProduct(product);
+                                setShowBidModal(true);
+                              }}
+                              className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 text-black rounded-lg hover:border-black transition-colors"
+                            >
+                              Quick Bid
+                            </button>
                           </div>
-                        </div>
-                        
-                        <button 
-                          disabled={!product.inStock}
-                          className="w-10 h-10 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center group-hover:scale-105 ml-3"
-                        >
-                          <ShoppingCartIcon className="h-5 w-5" />
-                        </button>
+                        )}
+
+                        {product.hasAuction && isEnded && product.highestBidderEmail && (
+                          <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                            <p className="text-sm text-green-800 font-semibold">
+                              Winner: {product.highestBidderEmail === session?.user?.email 
+                                ? "You won!" 
+                                : product.highestBidderEmail}
+                            </p>
+                            <p className="text-xs text-green-600">
+                              Winning bid: Rs. {(product.currentBid || 0).toLocaleString()}
+                            </p>
+                          </div>
+                        )}
+
+                        {isMyProduct && (
+                          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                            <p className="text-sm text-blue-800 font-semibold">Your Product</p>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
-              /* Enhanced No Results State */
-              <div className="text-center py-20">
-                <div className="w-20 h-20 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-6">
-                  <MagnifyingGlassIcon className="h-10 w-10 text-gray-400" />
-                </div>
-                <h3 className="text-2xl font-bold text-black mb-4">
-                  No products found
-                </h3>
-                <p className="text-gray-600 mb-8 max-w-md mx-auto">
-                  {searchQuery 
-                    ? `No results for &quot;${searchQuery}&quot;. Try different keywords or adjust your filters.`
-                    : "No products match your current filters. Try adjusting them to see more results."
-                  }
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery("")}
-                      className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
-                    >
-                      Clear Search
-                    </button>
-                  )}
-                  <button
-                    onClick={clearAllFilters}
-                    className="px-6 py-3 border-2 border-gray-300 text-black rounded-lg hover:border-black transition-colors font-medium"
-                  >
-                    Clear All Filters
-                  </button>
-                </div>
+              <div className="text-center py-12">
+                <p className="text-gray-600">No products available yet</p>
               </div>
             )}
-          </main>
-        </div>
+          </div>
+        )}
+
+        {activeTab === "seller" && (
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-black mb-2">My Products</h2>
+                <p className="text-gray-600">Manage your product listings and auctions</p>
+              </div>
+              <button
+                onClick={() => setShowAddForm(true)}
+                className="flex items-center gap-2 px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
+              >
+                <PlusIcon className="h-5 w-5" />
+                Add Product
+              </button>
+            </div>
+
+            {myProducts.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {myProducts.map((product) => {
+                  const timeRemaining = product.hasAuction && product.auctionEndTime 
+                    ? getTimeRemaining(product.auctionEndTime)
+                    : null;
+                  const isEnded = timeRemaining === "Ended" || product.auctionStatus === "ended";
+
+                  return (
+                    <div
+                      key={product._id}
+                      className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300"
+                    >
+                      <div className="relative aspect-square">
+                        <Image
+                          src={product.imageUrl}
+                          alt={product.title}
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                        />
+                        {product.hasAuction && (
+                          <div className="absolute top-3 left-3">
+                            <span className={`text-white text-xs font-bold px-2 py-1 rounded ${
+                              isEnded ? "bg-gray-600" : "bg-red-600"
+                            }`}>
+                              {isEnded ? "ENDED" : "LIVE"}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="p-4">
+                        <h3 className="font-bold text-black text-lg mb-2 line-clamp-2">
+                          {product.title}
+                        </h3>
+                        <p className="text-sm text-gray-600 line-clamp-2 mb-4">
+                          {product.description}
+                        </p>
+
+                        {product.hasAuction && (
+                          <div className="space-y-2 mb-4 p-3 bg-gray-50 rounded-lg">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Current Bid:</span>
+                              <span className="font-bold text-green-600">
+                                Rs. {(product.currentBid || product.startingBid || 0).toLocaleString()}
+                              </span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Total Bids:</span>
+                              <span className="font-semibold">{product.totalBids || 0}</span>
+                            </div>
+                            {timeRemaining && (
+                              <div className={`flex items-center gap-2 p-2 rounded ${
+                                isEnded ? "bg-gray-100" : "bg-red-50"
+                              }`}>
+                                <ClockIcon className={`h-4 w-4 ${
+                                  isEnded ? "text-gray-600" : "text-red-600"
+                                }`} />
+                                <span className={`text-sm font-semibold ${
+                                  isEnded ? "text-gray-600" : "text-red-600"
+                                }`}>
+                                  {timeRemaining}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        <div className="space-y-2">
+                          {product.hasAuction && !isEnded && (
+                            <>
+                              <button
+                                onClick={() => handleEndAuction(product._id!)}
+                                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                              >
+                                <StopIcon className="h-4 w-4" />
+                                End Auction
+                              </button>
+                              <button
+                                onClick={() => handleExtendAuction(product._id!, 24)}
+                                className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 text-black rounded-lg hover:border-black transition-colors"
+                              >
+                                <ArrowPathIcon className="h-4 w-4" />
+                                Extend +24h
+                              </button>
+                            </>
+                          )}
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleDelete(product._id!)}
+                              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                            >
+                              <TrashIcon className="h-4 w-4" />
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
+                <ShoppingBagIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-black mb-2">No products yet</h3>
+                <p className="text-gray-600 mb-6">Start by adding your first product!</p>
+                <button
+                  onClick={() => setShowAddForm(true)}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
+                >
+                  <PlusIcon className="h-5 w-5" />
+                  Add Product
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Add Product Modal */}
+      {showAddForm && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-black">
+                  {editingProduct ? "Edit Product" : "Add New Product"}
+                </h2>
+                <button onClick={closeForm} className="p-2 rounded-full hover:bg-gray-100">
+                  <XMarkIcon className="h-6 w-6" />
+                </button>
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+              <div>
+                <label className="block text-sm font-semibold text-black mb-2">
+                  Product Image *
+                </label>
+                {formData.imageUrl ? (
+                  <div className="relative aspect-video w-full rounded-lg overflow-hidden border border-gray-200">
+                    <Image
+                      src={formData.imageUrl}
+                      alt="Preview"
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 672px) 100vw, 672px"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setFormData((prev) => ({ ...prev, imageUrl: "" }))}
+                      className="absolute top-2 right-2 p-2 bg-red-600 text-white rounded-full hover:bg-red-700"
+                    >
+                      <XMarkIcon className="h-5 w-5" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center w-full aspect-video border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-black transition-colors">
+                    <PhotoIcon className="h-16 w-16 text-gray-400 mb-4" />
+                    <p className="text-sm text-gray-600 mb-2">Click to upload image</p>
+                    <p className="text-xs text-gray-500">PNG, JPG up to 5MB</p>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                      disabled={uploading}
+                    />
+                    {uploading && (
+                      <div className="mt-4">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black"></div>
+                      </div>
+                    )}
+                  </label>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-black mb-2">
+                  Product Title *
+                </label>
+                <input
+                  type="text"
+                  value={formData.title}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
+                  placeholder="Enter product title"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-black"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-black mb-2">
+                  Product Description *
+                </label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+                  placeholder="Describe your product"
+                  rows={4}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-black resize-none"
+                  required
+                />
+              </div>
+
+              {/* Auction Settings */}
+              <div className="border-t pt-6">
+                <label className="flex items-center gap-3 cursor-pointer mb-4">
+                  <input
+                    type="checkbox"
+                    checked={formData.hasAuction}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, hasAuction: e.target.checked }))}
+                    className="w-5 h-5 text-black border-gray-300 rounded focus:ring-black"
+                  />
+                  <div>
+                    <span className="text-sm font-semibold text-black">Enable Auction</span>
+                    <p className="text-xs text-gray-500">Allow buyers to bid on this product</p>
+                  </div>
+                </label>
+
+                {formData.hasAuction && (
+                  <div className="space-y-4 pl-8">
+                    <div>
+                      <label className="block text-sm font-semibold text-black mb-2">
+                        Starting Bid (Rs.) *
+                      </label>
+                      <input
+                        type="number"
+                        value={formData.startingBid}
+                        onChange={(e) =>
+                          setFormData((prev) => ({ ...prev, startingBid: parseFloat(e.target.value) || 0 }))
+                        }
+                        placeholder="0"
+                        min="0"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-black"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-black mb-2">
+                        Auction Duration (minutes) *
+                      </label>
+                      <select
+                        value={formData.auctionDurationMinutes}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            auctionDurationMinutes: parseInt(e.target.value),
+                          }))
+                        }
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-black"
+                      >
+                        <option value={1}>1 minute</option>
+                        <option value={5}>5 minutes</option>
+                        <option value={10}>10 minutes</option>
+                        <option value={15}>15 minutes</option>
+                        <option value={20}>20 minutes</option>
+                        <option value={30}>30 minutes</option>
+                        <option value={45}>45 minutes</option>
+                        <option value={60}>60 minutes (1 hour)</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={closeForm}
+                  className="flex-1 px-6 py-3 border border-gray-300 text-black rounded-lg hover:border-black transition-colors font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={uploading}
+                  className="flex-1 px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold disabled:opacity-50"
+                >
+                  {editingProduct ? "Update Product" : "Add Product"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Bid Modal */}
+      {showBidModal && selectedProduct && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg max-w-md w-full">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-black">Place Your Bid</h2>
+                <button
+                  onClick={() => {
+                    setShowBidModal(false);
+                    setBidAmount("");
+                    setSelectedProduct(null);
+                  }}
+                  className="p-2 rounded-full hover:bg-gray-100"
+                >
+                  <XMarkIcon className="h-6 w-6" />
+                </button>
+              </div>
+            </div>
+
+            <form onSubmit={handleBid} className="p-6 space-y-6">
+              <div>
+                <p className="text-sm text-gray-600 mb-2">Product:</p>
+                <p className="font-semibold text-black">{selectedProduct.title}</p>
+              </div>
+
+              <div>
+                <p className="text-sm text-gray-600 mb-2">Current Bid:</p>
+                <p className="text-2xl font-bold text-green-600">
+                  Rs. {(selectedProduct.currentBid || selectedProduct.startingBid || 0).toLocaleString()}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-black mb-2">
+                  Your Bid Amount (Rs.) *
+                </label>
+                <input
+                  type="number"
+                  value={bidAmount}
+                  onChange={(e) => setBidAmount(e.target.value)}
+                  placeholder={`Minimum: ${((selectedProduct.currentBid || selectedProduct.startingBid || 0) + 1).toLocaleString()}`}
+                  min={(selectedProduct.currentBid || selectedProduct.startingBid || 0) + 1}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-black"
+                  required
+                />
+                <p className="mt-2 text-xs text-gray-500">
+                  Minimum bid: Rs. {((selectedProduct.currentBid || selectedProduct.startingBid || 0) + 1).toLocaleString()}
+                </p>
+              </div>
+
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowBidModal(false);
+                    setBidAmount("");
+                    setSelectedProduct(null);
+                  }}
+                  className="flex-1 px-6 py-3 border border-gray-300 text-black rounded-lg hover:border-black transition-colors font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
+                >
+                  Place Bid
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>
   );
-};
-
-export default CategoryPage;
+}
