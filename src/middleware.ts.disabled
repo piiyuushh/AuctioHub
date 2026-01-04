@@ -1,8 +1,0 @@
-import { clerkMiddleware } from '@clerk/nextjs/server'
-
-// Simple middleware with no protection for now
-export default clerkMiddleware()
-
-export const config = {
-  matcher: [],
-};

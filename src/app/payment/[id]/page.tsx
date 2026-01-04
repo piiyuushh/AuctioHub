@@ -8,6 +8,8 @@ import {
   DevicePhoneMobileIcon,
   CheckCircleIcon,
   HomeIcon,
+  ExclamationTriangleIcon,
+  XCircleIcon,
 } from "@heroicons/react/24/outline";
 import { Header } from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -22,6 +24,7 @@ interface Product {
 }
 
 type PaymentMethod = "card" | "mobile" | null;
+type PaymentType = "full" | "penalty" | null;
 
 export default function PaymentPage() {
   const { data: session } = useSession();
@@ -32,7 +35,9 @@ export default function PaymentPage() {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>(null);
+  const [paymentType, setPaymentType] = useState<PaymentType>(null);
   const [processing, setProcessing] = useState(false);
+  const [showPenaltyConfirm, setShowPenaltyConfirm] = useState(false);
 
   useEffect(() => {
     if (!session) {
@@ -66,9 +71,15 @@ export default function PaymentPage() {
     }
   };
 
-  const handlePayment = async () => {
+  const handlePayment = async (type: "full" | "penalty") => {
     if (!selectedMethod) {
       alert("Please select a payment method");
+      return;
+    }
+
+    // Show confirmation for penalty
+    if (type === "penalty" && !showPenaltyConfirm) {
+      setShowPenaltyConfirm(true);
       return;
     }
 
@@ -76,6 +87,10 @@ export default function PaymentPage() {
 
     try {
       if (selectedMethod === "card") {
+        const amount = type === "full" 
+          ? product?.currentBid || 0
+          : (product?.currentBid || 0) * 0.5;
+
         // Stripe payment
         const response = await fetch("/api/payment/create-checkout-session", {
           method: "POST",
@@ -86,7 +101,8 @@ export default function PaymentPage() {
             productId: product?._id,
             productTitle: product?.title,
             productImage: product?.imageUrl,
-            amount: product?.currentBid || 0,
+            amount,
+            paymentType: type,
           }),
         });
 
@@ -103,7 +119,10 @@ export default function PaymentPage() {
         // Mobile payment (demo)
         setTimeout(() => {
           setProcessing(false);
-          alert("Mobile payment successful! Thank you for your purchase.");
+          const message = type === "full"
+            ? "Mobile payment successful! Thank you for your purchase."
+            : "Penalty payment successful. The seller will be compensated.";
+          alert(message);
           router.push("/");
         }, 2000);
       }
@@ -279,8 +298,9 @@ export default function PaymentPage() {
 
             {/* Action Buttons */}
             <div className="space-y-3">
+              {/* Full Payment Button */}
               <button
-                onClick={handlePayment}
+                onClick={() => handlePayment("full")}
                 disabled={!selectedMethod || processing}
                 className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold text-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -292,10 +312,56 @@ export default function PaymentPage() {
                 ) : (
                   <>
                     <CheckCircleIcon className="h-6 w-6" />
-                    Proceed to Payment
+                    Pay Full Amount (Rs. {(product.currentBid || 0).toLocaleString()})
                   </>
                 )}
               </button>
+
+              {/* Penalty Payment Section */}
+              {!showPenaltyConfirm ? (
+                <button
+                  onClick={() => setShowPenaltyConfirm(true)}
+                  disabled={processing}
+                  className="w-full flex items-center justify-center gap-2 px-6 py-4 border-2 border-orange-500 text-orange-700 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ExclamationTriangleIcon className="h-5 w-5" />
+                  Decline & Pay 50% Penalty
+                </button>
+              ) : (
+                <div className="border-2 border-red-500 rounded-lg p-4 bg-red-50">
+                  <div className="flex items-start gap-3 mb-4">
+                    <XCircleIcon className="h-6 w-6 text-red-600 flex-shrink-0" />
+                    <div>
+                      <h3 className="font-bold text-red-900 mb-2">Penalty Payment Confirmation</h3>
+                      <p className="text-sm text-red-800 mb-2">
+                        By declining this purchase, you agree to:
+                      </p>
+                      <ul className="text-sm text-red-800 space-y-1 list-disc list-inside">
+                        <li>Pay 50% penalty (Rs. {((product.currentBid || 0) * 0.5).toLocaleString()})</li>
+                        <li>Forfeit the item - you will NOT receive it</li>
+                        <li>Compensate the seller for your withdrawal</li>
+                        <li>Allow the seller to re-list the item</li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => handlePayment("penalty")}
+                      disabled={!selectedMethod || processing}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {processing ? "Processing..." : `Confirm Penalty (Rs. ${((product.currentBid || 0) * 0.5).toLocaleString()})`}
+                    </button>
+                    <button
+                      onClick={() => setShowPenaltyConfirm(false)}
+                      disabled={processing}
+                      className="px-4 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <button
                 onClick={() => router.push("/")}
