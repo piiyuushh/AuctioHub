@@ -16,16 +16,16 @@ function SignInContent() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F7F7F7] px-4 py-12">
+    <div className="min-h-screen flex items-center justify-center bg-[#F6F4EB] px-4 py-12">
       <div className="w-full max-w-6xl grid md:grid-cols-2 gap-8 items-center">
         {/* Left side - Branding */}
         <div className="hidden md:flex flex-col justify-center space-y-6 px-8">
           <div className="space-y-4">
-            <h1 className="text-5xl font-bold text-[#393E46]">
+            <h1 className="text-5xl font-bold text-[#4682A9]">
               Welcome Back to<br />
-              <span className="text-[#929AAB]">AuctioHub</span>
+              <span className="text-[#749BC2]">AuctioHub</span>
             </h1>
-            <p className="text-lg text-[#393E46]/70">
+            <p className="text-lg text-[#4682A9]/70">
               Sign in to access exclusive auctions, place bids, and track your winning items.
             </p>
           </div>
@@ -37,8 +37,8 @@ function SignInContent() {
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold text-[#393E46]">Secure Bidding</h3>
-                <p className="text-sm text-[#393E46]/60">Protected transactions and verified sellers</p>
+                <h3 className="font-semibold text-[#4682A9]">Secure Bidding</h3>
+                <p className="text-sm text-[#4682A9]/60">Protected transactions and verified sellers</p>
               </div>
             </div>
             <div className="flex items-start space-x-3">
@@ -48,26 +48,26 @@ function SignInContent() {
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold text-[#393E46]">Real-time Updates</h3>
-                <p className="text-sm text-[#393E46]/60">Get instant notifications on your bids</p>
+                <h3 className="font-semibold text-[#4682A9]">Real-time Updates</h3>
+                <p className="text-sm text-[#4682A9]/60">Get instant notifications on your bids</p>
               </div>
             </div>
             <div className="flex items-start space-x-3">
-              <div className="w-8 h-8 rounded-full bg-[#393E46] flex items-center justify-center flex-shrink-0">
+              <div className="w-8 h-8 rounded-full bg-[#4682A9] flex items-center justify-center flex-shrink-0">
                 <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold text-[#393E46]">Win Amazing Deals</h3>
-                <p className="text-sm text-[#393E46]/60">Bid smart and save on premium items</p>
+                <h3 className="font-semibold text-[#4682A9]">Win Amazing Deals</h3>
+                <p className="text-sm text-[#4682A9]/60">Bid smart and save on premium items</p>
               </div>
             </div>
           </div>
           <div className="pt-6">
             <Link
               href="/"
-              className="inline-flex items-center text-[#929AAB] hover:text-[#393E46] transition-colors"
+              className="inline-flex items-center text-[#749BC2] hover:text-[#4682A9] transition-colors"
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -78,7 +78,7 @@ function SignInContent() {
         </div>
 
         {/* Right side - Sign In Form */}
-        <div className="bg-white p-8 rounded-2xl shadow-lg border border-[#EEEEEE]">
+        <div className="bg-white p-8 rounded-2xl shadow-lg border border-[#91C8E4]">
           <div className="text-center mb-8">
             <Link href="/" className="inline-block mb-6">
               <Image
@@ -89,8 +89,8 @@ function SignInContent() {
                 className="mx-auto"
               />
             </Link>
-            <h2 className="text-3xl font-bold text-[#393E46] mb-2">Sign In</h2>
-            <p className="text-[#929AAB]">Welcome back to AuctioHub</p>
+            <h2 className="text-3xl font-bold text-[#4682A9] mb-2">Sign In</h2>
+            <p className="text-[#749BC2]">Welcome back to AuctioHub</p>
           </div>
 
           {/* Error Message */}
@@ -117,7 +117,7 @@ function SignInContent() {
           {/* Google Sign In Button */}
           <button
             onClick={handleGoogleSignIn}
-            className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-white border-2 border-[#EEEEEE] rounded-xl text-[#393E46] font-semibold hover:bg-[#F7F7F7] hover:border-[#929AAB] transition-all duration-300 shadow-sm hover:shadow-md"
+            className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-white border-2 border-[#91C8E4] rounded-xl text-[#4682A9] font-semibold hover:bg-[#F6F4EB] hover:border-[#749BC2] transition-all duration-300 shadow-sm hover:shadow-md"
           >
             <svg className="w-6 h-6" viewBox="0 0 24 24">
               <path
@@ -143,39 +143,39 @@ function SignInContent() {
           {/* Divider */}
           <div className="relative my-8">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-[#EEEEEE]"></div>
+              <div className="w-full border-t border-[#91C8E4]"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-[#929AAB]">New to AuctioHub?</span>
+              <span className="px-4 bg-white text-[#749BC2]">New to AuctioHub?</span>
             </div>
           </div>
 
           {/* Sign Up Link */}
           <Link
             href="/sign-up"
-            className="w-full block text-center px-6 py-4 bg-[#393E46] text-white rounded-xl font-semibold hover:bg-[#929AAB] transition-all duration-300"
+            className="w-full block text-center px-6 py-4 bg-[#4682A9] text-white rounded-xl font-semibold hover:bg-[#749BC2] transition-all duration-300"
           >
             Create an Account
           </Link>
 
           {/* Footer Links */}
           <div className="mt-8 text-center">
-            <p className="text-sm text-[#929AAB]">
+            <p className="text-sm text-[#749BC2]">
               By signing in, you agree to our{" "}
-              <Link href="/terms" className="text-[#393E46] hover:underline">
+              <Link href="/terms" className="text-[#4682A9] hover:underline">
                 Terms
               </Link>{" "}
               and{" "}
-              <Link href="/privacy" className="text-[#393E46] hover:underline">
+              <Link href="/privacy" className="text-[#4682A9] hover:underline">
                 Privacy Policy
               </Link>
             </p>
           </div>
 
-          <div className="mt-6 pt-6 border-t border-[#EEEEEE] text-center md:hidden">
+          <div className="mt-6 pt-6 border-t border-[#91C8E4] text-center md:hidden">
             <Link
               href="/"
-              className="inline-flex items-center text-sm text-[#929AAB] hover:text-[#393E46] transition-colors"
+              className="inline-flex items-center text-sm text-[#749BC2] hover:text-[#4682A9] transition-colors"
             >
               <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -192,10 +192,10 @@ function SignInContent() {
 export default function SignInPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-[#F7F7F7]">
+      <div className="min-h-screen flex items-center justify-center bg-[#F6F4EB]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#393E46] mx-auto"></div>
-          <p className="mt-4 text-[#929AAB]">Loading...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4682A9] mx-auto"></div>
+          <p className="mt-4 text-[#749BC2]">Loading...</p>
         </div>
       </div>
     }>
