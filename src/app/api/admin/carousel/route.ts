@@ -14,17 +14,17 @@ cloudinary.config({
 // Get all carousel images (both active and inactive for admin)
 export async function GET() {
   try {
-    console.log('🔍 Getting carousel images...')
+    console.log('Getting carousel images...')
     
     // For admin endpoint, return both active and inactive images
     const images = await CarouselImage.find({})
     // Already sorted by order in the model
       
     
-    console.log('✅ Found carousel images:', images.length)
+    console.log('Found carousel images:', images.length)
     return NextResponse.json(images)
   } catch (error) {
-    console.error('❌ Carousel GET Error:', {
+    console.error('Carousel GET Error:', {
       message: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       timestamp: new Date().toISOString()
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     const maxOrder = allImages.length > 0 ? Math.max(...allImages.map(img => img.order)) : 0
     const nextOrder = maxOrder + 1
     
-    console.log('💾 Creating carousel image with automatic order:', nextOrder)
+    console.log('Creating carousel image with automatic order:', nextOrder)
     const image = await CarouselImage.create({
       url,
       altText,
@@ -77,10 +77,10 @@ export async function POST(request: NextRequest) {
       cloudinary_public_id: cloudinary_public_id || null
     })
     
-    console.log('✅ Carousel image created:', image._id)
+    console.log('Carousel image created:', image._id)
     return NextResponse.json(image, { status: 201 })
   } catch (error) {
-    console.error('❌ Carousel POST Error:', {
+    console.error('Carousel POST Error:', {
       message: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       timestamp: new Date().toISOString()
@@ -227,16 +227,16 @@ export async function DELETE(request: NextRequest) {
     // Delete from Cloudinary if public_id exists
     if (cloudinaryPublicId) {
       try {
-        console.log('🗑️ Deleting image from Cloudinary:', cloudinaryPublicId)
+        console.log('Deleting image from Cloudinary:', cloudinaryPublicId)
         const result = await cloudinary.uploader.destroy(cloudinaryPublicId)
         
         if (result.result === 'ok') {
-          console.log('✅ Image deleted from Cloudinary successfully')
+          console.log('Image deleted from Cloudinary successfully')
         } else {
-          console.warn('⚠️ Cloudinary deletion result:', result.result)
+          console.warn('Cloudinary deletion result:', result.result)
         }
       } catch (cloudinaryError) {
-        console.warn('⚠️ Error deleting from Cloudinary:', cloudinaryError)
+        console.warn('Error deleting from Cloudinary:', cloudinaryError)
         // Continue with database deletion even if Cloudinary deletion fails
       }
     }
@@ -251,7 +251,7 @@ export async function DELETE(request: NextRequest) {
       { $inc: { order: -1 } }
     )
     
-    console.log(`✅ Deleted image at order ${deletedOrder} and reordered subsequent images`)
+    console.log(`Deleted image at order ${deletedOrder} and reordered subsequent images`)
     return NextResponse.json({ 
       success: true, 
       message: 'Image deleted and order automatically adjusted',

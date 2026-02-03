@@ -14,12 +14,12 @@ cloudinary.config({
 })
 
 export async function POST(request: NextRequest) {
-  console.log('🔍 Upload endpoint called')
+  console.log('Upload endpoint called')
   
   try {
-    console.log('🔐 Checking admin access...')
+    console.log('Checking admin access...')
     await requireAdmin()
-    console.log('✅ Admin access granted')
+    console.log('Admin access granted')
 
     // Check if Cloudinary is configured with detailed logging
     const configCheck = {
@@ -29,36 +29,36 @@ export async function POST(request: NextRequest) {
       cloudName: process.env.CLOUDINARY_CLOUD_NAME?.substring(0, 5) + '***'
     }
     
-    console.log('🌤️ Cloudinary config check:', configCheck)
+    console.log('Cloudinary config check:', configCheck)
     
     if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
-      console.error('❌ Cloudinary not configured')
+      console.error('Cloudinary not configured')
       return NextResponse.json({ 
         error: 'Cloudinary not configured. Missing environment variables.',
         details: configCheck
       }, { status: 500 })
     }
 
-    console.log('📝 Parsing form data...')
+    console.log('Parsing form data...')
     const data = await request.formData()
     const file: File | null = data.get('file') as unknown as File
 
     if (!file) {
-      console.error('❌ No file in form data')
+      console.error('No file in form data')
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 })
     }
     
-    console.log('📁 File received:', {
+    console.log('File received:', {
       name: file.name,
       size: file.size,
       type: file.type
     })
 
     // Validate file type
-    console.log('🔍 Validating file type:', file.type)
+    console.log('Validating file type:', file.type)
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
     if (!allowedTypes.includes(file.type)) {
-      console.error('❌ Invalid file type:', file.type)
+      console.error('Invalid file type:', file.type)
       return NextResponse.json(
         { error: `Invalid file type: ${file.type}. Only JPEG, PNG, WebP, and GIF are allowed.` },
         { status: 400 }
@@ -66,10 +66,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file size (max 8MB for Vercel compatibility)
-    console.log('🔍 Validating file size:', file.size)
+    console.log('Validating file size:', file.size)
     const maxSize = 8 * 1024 * 1024 // 8MB (reduced for Vercel limits)
     if (file.size > maxSize) {
-      console.error('❌ File too large:', file.size)
+      console.error('File too large:', file.size)
       return NextResponse.json(
         { error: `File too large: ${(file.size / 1024 / 1024).toFixed(2)}MB. Maximum size is 8MB.` },
         { status: 400 }
@@ -77,13 +77,13 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      console.log('🔄 Converting file to buffer...')
+      console.log('Converting file to buffer...')
       // Convert file to buffer
       const bytes = await file.arrayBuffer()
       const buffer = Buffer.from(bytes)
-      console.log('✅ Buffer created, size:', buffer.length)
+      console.log('Buffer created, size:', buffer.length)
 
-      console.log('☁️ Starting Cloudinary upload...')
+      console.log('Starting Cloudinary upload...')
       // Upload to Cloudinary
       const uploadResponse = await new Promise((resolve, reject) => {
         cloudinary.uploader.upload_stream(
@@ -98,10 +98,10 @@ export async function POST(request: NextRequest) {
           },
           (error, result) => {
             if (error) {
-              console.error('❌ Cloudinary upload error:', error)
+              console.error('Cloudinary upload error:', error)
               reject(error)
             } else {
-              console.log('✅ Cloudinary upload success:', {
+              console.log('Cloudinary upload success:', {
                 public_id: result?.public_id,
                 secure_url: result?.secure_url?.substring(0, 50) + '...'
               })
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
 
       const result = uploadResponse as { secure_url: string; public_id: string }
       
-      console.log('🎉 Upload completed successfully')
+      console.log('Upload completed successfully')
       return NextResponse.json({
         success: true,
         url: result.secure_url,
@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
       })
 
     } catch (uploadError) {
-      console.error('❌ Cloudinary upload failed:', uploadError)
+      console.error('Cloudinary upload failed:', uploadError)
       return NextResponse.json(
         { 
           error: 'Failed to upload to Cloudinary. Please try again.',
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('❌ Upload endpoint error:', error)
+    console.error('Upload endpoint error:', error)
     
     if (error instanceof Error && error.message.includes('Admin access required')) {
       return NextResponse.json(

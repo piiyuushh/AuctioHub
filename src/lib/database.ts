@@ -35,10 +35,10 @@ async function connectToDatabase() {
   try {
     // Test the connection
     await pool.query('SELECT NOW()')
-    console.log('✅ PostgreSQL connected successfully')
+    console.log('PostgreSQL connected successfully')
     return pool
   } catch (error) {
-    console.error('❌ PostgreSQL connection error:', error)
+    console.error('PostgreSQL connection error:', error)
     throw error
   }
 }

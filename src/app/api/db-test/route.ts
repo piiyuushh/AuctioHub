@@ -4,20 +4,20 @@ import { User, CarouselImage } from '@/lib/models'
 
 export async function GET() {
   try {
-    console.log('🧪 Testing database connection...')
+    console.log('Testing database connection...')
     
     // Test connection
-    console.log('✅ Database connection successful')
+    console.log('Database connection successful')
     
     // Test User model
     const allUsers = await User.find({})
     const userCount = allUsers.length
-    console.log('👥 User count:', userCount)
+    console.log('User count:', userCount)
     
     // Test CarouselImage model
     const allImages = await CarouselImage.find({})
     const imageCount = allImages.length
-    console.log('🖼️ Carousel image count:', imageCount)
+    console.log('Carousel image count:', imageCount)
     
     // Get sample data
     const sampleUser = allUsers[0] || null
@@ -41,7 +41,7 @@ export async function GET() {
       timestamp: new Date().toISOString()
     })
   } catch (error) {
-    console.error('❌ Database test failed:', error)
+    console.error('Database test failed:', error)
     
     return NextResponse.json({
       success: false,

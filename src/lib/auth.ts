@@ -4,10 +4,10 @@ import { pool } from "./database";
 import { User } from "./models";
 
 // Log configuration status on startup
-console.log("🔐 NextAuth Configuration Status:");
-console.log("  - GOOGLE_CLIENT_ID:", process.env.GOOGLE_CLIENT_ID ? "✅ Set" : "❌ Missing");
-console.log("  - GOOGLE_CLIENT_SECRET:", process.env.GOOGLE_CLIENT_SECRET ? "✅ Set" : "❌ Missing");
-console.log("  - NEXTAUTH_SECRET:", process.env.NEXTAUTH_SECRET ? "✅ Set" : "❌ Missing");
+console.log("NextAuth Configuration Status:");
+console.log("  - GOOGLE_CLIENT_ID:", process.env.GOOGLE_CLIENT_ID ? "Set" : "Missing");
+console.log("  - GOOGLE_CLIENT_SECRET:", process.env.GOOGLE_CLIENT_SECRET ? "Set" : "Missing");
+console.log("  - NEXTAUTH_SECRET:", process.env.NEXTAUTH_SECRET ? "Set" : "Missing");
 console.log("  - NEXTAUTH_URL:", process.env.NEXTAUTH_URL || "Not set (will use default)");
 
 export const authOptions: NextAuthOptions = {
@@ -24,7 +24,7 @@ export const authOptions: NextAuthOptions = {
           const email = user.email?.toLowerCase();
           const googleId = account.providerAccountId;
           
-          console.log(`🔐 Sign-in attempt for: ${email} (Google ID: ${googleId})`);
+          console.log(`Sign-in attempt for: ${email} (Google ID: ${googleId})`);
           
           // Check if user email is in initial admin emails list
           const adminEmailsRaw = process.env.ADMIN_EMAILS?.split(',').map(e => e.trim().toLowerCase()) || [];
@@ -43,7 +43,7 @@ export const authOptions: NextAuthOptions = {
                 name: user.name || '',
                 image: user.image || '',
               });
-              console.log(`✅ User signed in: ${email} (Role: ${existingUser.role})`);
+              console.log(`User signed in: ${email} (Role: ${existingUser.role})`);
             }
           } else {
             // Create new user
@@ -54,18 +54,18 @@ export const authOptions: NextAuthOptions = {
               image: user.image || '',
               role: isInitialAdmin ? 'ADMIN' : 'USER',
             });
-            console.log(`✅ New user created: ${email} (Role: ${newUser.role})`);
+            console.log(`New user created: ${email} (Role: ${newUser.role})`);
           }
           
           return true;
         } catch (error: any) {
-          console.error("❌ Error during sign in:", error);
-          console.error("❌ Error code:", error.code);
-          console.error("❌ Error message:", error.message);
+          console.error("Error during sign in:", error);
+          console.error("Error code:", error.code);
+          console.error("Error message:", error.message);
           
           // Handle duplicate key error - try to clean up and retry
           if (error.code === '23505') { // PostgreSQL unique violation
-            console.log("🔄 Duplicate key error, attempting to fix...");
+            console.log("Duplicate key error, attempting to fix...");
             try {
               // If there's a duplicate googleId, update the existing record
               const email = user.email?.toLowerCase();
@@ -84,10 +84,10 @@ export const authOptions: NextAuthOptions = {
                 }
               }
               
-              console.log("✅ Fixed duplicate key issue and signed in user");
+              console.log("Fixed duplicate key issue and signed in user");
               return true;
             } catch (retryError) {
-              console.error("❌ Retry failed:", retryError);
+              console.error("Retry failed:", retryError);
             }
           }
           
@@ -112,7 +112,7 @@ export const authOptions: NextAuthOptions = {
             token.role = 'USER';
           }
         } catch (error) {
-          console.error("❌ Error fetching user in JWT callback:", error);
+          console.error("Error fetching user in JWT callback:", error);
         }
       }
       return token;

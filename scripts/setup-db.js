@@ -16,19 +16,19 @@ async function setupDatabase() {
   const client = await pool.connect();
   
   try {
-    console.log('✅ Connected to database successfully!');
+    console.log('Connected to database successfully!');
     
     // Read schema file
     const schemaPath = path.join(__dirname, 'schema.sql');
     const schema = fs.readFileSync(schemaPath, 'utf8');
     
-    console.log('📄 Executing schema...');
+    console.log('Executing schema...');
     
     // Execute schema
     await client.query(schema);
     
-    console.log('✅ Database schema created successfully!');
-    console.log('\n📊 Tables created:');
+    console.log('Database schema created successfully!');
+    console.log('\nTables created:');
     console.log('  - users');
     console.log('  - carousel_images');
     console.log('  - new_arrivals');
@@ -38,7 +38,7 @@ async function setupDatabase() {
     console.log('  - chat_messages');
     
   } catch (error) {
-    console.error('❌ Error setting up database:', error.message);
+    console.error('Error setting up database:', error.message);
     console.error('Error details:', error);
     process.exit(1);
   } finally {

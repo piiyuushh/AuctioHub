@@ -57,7 +57,7 @@ export async function POST() {
     // Drop the OLD clerkId index (from previous Clerk auth system)
     try {
       await usersCollection.dropIndex('clerkId_1')
-      console.log('✅ Dropped clerkId_1 index')
+      console.log('Dropped clerkId_1 index')
       droppedIndexes.push('clerkId_1')
     } catch (e: any) {
       console.log('clerkId_1 index does not exist or already dropped:', e.message)
@@ -67,7 +67,7 @@ export async function POST() {
     // Drop the googleId index if it exists (to recreate as sparse)
     try {
       await usersCollection.dropIndex('googleId_1')
-      console.log('✅ Dropped googleId_1 index')
+      console.log('Dropped googleId_1 index')
       droppedIndexes.push('googleId_1')
     } catch (e: any) {
       console.log('googleId_1 index does not exist or already dropped:', e.message)
@@ -79,7 +79,7 @@ export async function POST() {
       { googleId: 1 }, 
       { unique: true, sparse: true, name: 'googleId_1' }
     )
-    console.log('✅ Recreated googleId_1 index as sparse')
+    console.log('Recreated googleId_1 index as sparse')
     
     // Get updated indexes
     const newIndexes = await usersCollection.indexes()

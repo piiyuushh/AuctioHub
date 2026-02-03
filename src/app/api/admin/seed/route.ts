@@ -46,10 +46,10 @@ export async function POST() {
       }
     ]
     
-    console.log('🌱 Creating initial carousel images...')
+    console.log('Creating initial carousel images...')
     const createdImages = await CarouselImage.insertMany(initialImages)
     
-    console.log(`✅ Successfully created ${createdImages.length} initial carousel images`)
+    console.log(`Successfully created ${createdImages.length} initial carousel images`)
     
     return NextResponse.json({
       success: true,

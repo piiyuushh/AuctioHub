@@ -532,7 +532,7 @@ export default function CarouselManager() {
                           </span>
                           {image.cloudinary_public_id && (
                             <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-700 flex items-center gap-1">
-                              ☁️ Cloudinary
+                              Cloudinary
                             </span>
                           )}
                         </div>
@@ -625,7 +625,7 @@ export default function CarouselManager() {
                           </span>
                           {image.cloudinary_public_id && (
                             <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-700 flex items-center gap-1">
-                              ☁️ Cloudinary
+                              Cloudinary
                             </span>
                           )}
                         </div>

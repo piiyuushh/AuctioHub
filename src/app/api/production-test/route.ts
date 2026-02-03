@@ -4,7 +4,7 @@ import { CarouselImage } from '@/lib/models'
 
 export async function GET() {
   try {
-    console.log('🔍 Production Debug: Starting comprehensive test...')
+    console.log('Production Debug: Starting comprehensive test...')
     
     // Check environment variables
     const envCheck = {
@@ -18,7 +18,7 @@ export async function GET() {
       hasCloudinary: !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET)
     }
     
-    console.log('🔍 Environment check:', envCheck)
+    console.log('Environment check:', envCheck)
     
     // Test database connection
     const dbResult = {
@@ -34,8 +34,8 @@ export async function GET() {
     }
     
     try {
-      console.log('🔌 Attempting database connection...')
-      console.log('✅ Database connected successfully')
+      console.log('Attempting database connection...')
+      console.log('Database connected successfully')
       
       dbResult.connected = true
       
@@ -51,10 +51,10 @@ export async function GET() {
         isActive: img.isActive
       }))
       
-      console.log(`✅ Found ${dbResult.carouselCount} active carousel images`)
+      console.log(`Found ${dbResult.carouselCount} active carousel images`)
       
     } catch (dbError) {
-      console.error('❌ Database error:', dbError)
+      console.error('Database error:', dbError)
       dbResult.error = dbError instanceof Error ? dbError.message : 'Unknown database error'
     }
     
@@ -74,7 +74,7 @@ export async function GET() {
       carouselApiResult.imageCount = allImages.length
       
     } catch (apiError) {
-      console.error('❌ Carousel API error:', apiError)
+      console.error('Carousel API error:', apiError)
       carouselApiResult.error = apiError instanceof Error ? apiError.message : 'Unknown API error'
     }
     
@@ -95,7 +95,7 @@ export async function GET() {
     })
     
   } catch (error) {
-    console.error('❌ Production debug error:', error)
+    console.error('Production debug error:', error)
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',

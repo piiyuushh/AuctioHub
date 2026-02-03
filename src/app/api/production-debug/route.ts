@@ -7,7 +7,7 @@ import { isAdmin } from '@/lib/admin'
 
 export async function GET() {
   try {
-    console.log('🔍 Production Debug Endpoint Called')
+    console.log('Production Debug Endpoint Called')
     
     // Test 1: Environment Variables
     const envCheck = {
@@ -54,7 +54,7 @@ export async function GET() {
     }
     
     try {
-      console.log('📊 Database connected successfully')
+      console.log('Database connected successfully')
       
       const allImages = await CarouselImage.find({})
       const count = allImages.length

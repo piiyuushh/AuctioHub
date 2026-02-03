@@ -8,32 +8,32 @@ export async function isAdmin() {
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.email) {
-      console.log('❌ No session or email found')
+      console.log('No session or email found')
       return false
     }
     
     const userEmail = session.user.email.toLowerCase()
-    console.log('🔍 Checking admin status for:', userEmail)
+    console.log('Checking admin status for:', userEmail)
     
     // Check if user exists in database and has admin role
     const dbUser = await User.findOne({ email: userEmail })
     
     if (!dbUser) {
-      console.log('❌ User not found in database')
+      console.log('User not found in database')
       return false
     }
     
     const isAdminUser = dbUser.role === 'ADMIN'
     
     if (isAdminUser) {
-      console.log('✅ Admin access granted for:', userEmail)
+      console.log('Admin access granted for:', userEmail)
     } else {
-      console.log('❌ Admin access denied for:', userEmail, 'Role:', dbUser.role)
+      console.log('Admin access denied for:', userEmail, 'Role:', dbUser.role)
     }
     
     return isAdminUser
   } catch (error) {
-    console.log('❌ Error checking admin status:', error)
+    console.log('Error checking admin status:', error)
     return false
   }
 }

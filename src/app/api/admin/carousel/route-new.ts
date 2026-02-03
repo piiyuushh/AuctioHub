@@ -6,15 +6,15 @@ import { requireAdmin } from '@/lib/admin'
 // Get all carousel images
 export async function GET() {
   try {
-    console.log('🔍 Getting carousel images...')
+    console.log('Getting carousel images...')
     
     const images = await CarouselImage.find({ isActive: true })
     // Already sorted by order in PostgreSQL query
     
-    console.log('✅ Found carousel images:', images.length)
+    console.log('Found carousel images:', images.length)
     return NextResponse.json(images)
   } catch (error) {
-    console.error('❌ Carousel GET Error:', {
+    console.error('Carousel GET Error:', {
       message: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       timestamp: new Date().toISOString()
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     const maxOrder = allImages.length > 0 ? Math.max(...allImages.map(img => img.order)) : 0
     const nextOrder = maxOrder + 1
     
-    console.log('💾 Creating carousel image with automatic order:', nextOrder)
+    console.log('Creating carousel image with automatic order:', nextOrder)
     const image = await CarouselImage.create({
       url,
       altText,
@@ -67,10 +67,10 @@ export async function POST(request: NextRequest) {
       isActive: true
     })
     
-    console.log('✅ Carousel image created:', image._id)
+    console.log('Carousel image created:', image._id)
     return NextResponse.json(image, { status: 201 })
   } catch (error) {
-    console.error('❌ Carousel POST Error:', {
+    console.error('Carousel POST Error:', {
       message: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       timestamp: new Date().toISOString()
@@ -228,7 +228,7 @@ export async function DELETE(request: NextRequest) {
       }
     }
     
-    console.log(`✅ Deleted image at order ${deletedOrder} and reordered subsequent images`)
+    console.log(`Deleted image at order ${deletedOrder} and reordered subsequent images`)
     return NextResponse.json({ success: true, message: 'Image deleted and order automatically adjusted' })
   } catch (error) {
     console.error('Failed to delete carousel image:', error)

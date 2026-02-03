@@ -174,7 +174,7 @@ export default function CloudinaryManager() {
 
         {/* Warning */}
         <div className="bg-yellow-50 p-4 rounded-md border border-yellow-200">
-          <h3 className="font-medium text-yellow-900 mb-2">⚠️ Warning:</h3>
+          <h3 className="font-medium text-yellow-900 mb-2">WARNING:</h3>
           <p className="text-sm text-yellow-800">
             Deleting an image from Cloudinary is permanent and cannot be undone. 
             Make sure you&apos;re not deleting images that are still being used on your website.

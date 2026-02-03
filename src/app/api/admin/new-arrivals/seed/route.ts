@@ -55,13 +55,13 @@ export async function POST() {
     // Insert all products
     await NewArrival.insertMany(defaultProducts)
     
-    console.log('✅ Seeded new arrival products successfully')
+    console.log('Seeded new arrival products successfully')
     return NextResponse.json({ 
       message: 'New arrival products seeded successfully',
       count: defaultProducts.length 
     })
   } catch (error) {
-    console.error('❌ New Arrivals Seed Error:', {
+    console.error('New Arrivals Seed Error:', {
       message: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       timestamp: new Date().toISOString()

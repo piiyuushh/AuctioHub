@@ -13,7 +13,7 @@ export async function GET() {
       timestamp: new Date().toISOString()
     }
     
-    console.log('🔍 Environment check:', envCheck)
+    console.log('Environment check:', envCheck)
     
     return NextResponse.json({
       success: true,
@@ -21,7 +21,7 @@ export async function GET() {
       message: 'Environment variables check completed'
     })
   } catch (error) {
-    console.error('❌ Environment check error:', error)
+    console.error('Environment check error:', error)
     return NextResponse.json(
       { error: 'Failed to check environment variables' },
       { status: 500 }

@@ -4,16 +4,16 @@ import { CarouselImage } from '@/lib/models'
 
 export async function GET() {
   try {
-    console.log('🔍 Public Carousel Test: Starting...')
+    console.log('Public Carousel Test: Starting...')
     
     // Test database connection
-    console.log('✅ Database connected')
+    console.log('Database connected')
     
     // Get active carousel images (same logic as the main carousel endpoint)
     const images = await CarouselImage.find({ isActive: true })
     // Already sorted by order in the model
     
-    console.log(`📸 Found ${images.length} active carousel images`)
+    console.log(`Found ${images.length} active carousel images`)
     
     // Also get all images (including inactive) for debugging
     const allImages = await CarouselImage.find({})
@@ -21,7 +21,7 @@ export async function GET() {
       new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()
     )
     
-    console.log(`📸 Total images in database: ${allImages.length}`)
+    console.log(`Total images in database: ${allImages.length}`)
     
     return NextResponse.json({
       success: true,
@@ -43,7 +43,7 @@ export async function GET() {
     })
     
   } catch (error) {
-    console.error('❌ Public carousel test error:', error)
+    console.error('Public carousel test error:', error)
     
     return NextResponse.json({
       success: false,
