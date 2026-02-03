@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server'
-import connectToDatabase from '@/lib/mongodb'
+import { pool } from '@/lib/database'
 import { NewArrival } from '@/lib/models'
 import { requireAdmin } from '@/lib/admin'
 
 export async function POST() {
   try {
     await requireAdmin()
-    await connectToDatabase()
     
     // Check if data already exists
     const existingProducts = await NewArrival.countDocuments()

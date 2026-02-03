@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import connectDB from "@/lib/mongodb";
+import { pool } from "@/lib/database";
 import { ChatMessage } from "@/lib/models";
 
 // GET - Fetch chat messages for an auction
@@ -10,7 +10,6 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await connectDB();
 
     const { id: productId } = await params;
     const { searchParams } = new URL(request.url);
@@ -23,10 +22,11 @@ export async function GET(
       query.createdAt = { $gt: new Date(after) };
     }
 
-    const messages = await ChatMessage.find(query)
-      .sort({ createdAt: 1 })
-      .limit(100)
-      .lean();
+    const allMessages = await ChatMessage.find(query)
+    // Sort and limit in JavaScript
+    const messages = allMessages
+      .sort((a, b) => new Date(a.createdAt!).getTime() - new Date(b.createdAt!).getTime())
+      .slice(0, 100);
 
     return NextResponse.json(messages);
   } catch (error) {
@@ -53,7 +53,6 @@ export async function POST(
       );
     }
 
-    await connectDB();
 
     const { id: productId } = await params;
     const { message } = await request.json();

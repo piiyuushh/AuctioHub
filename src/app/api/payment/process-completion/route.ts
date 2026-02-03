@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import connectDB from "@/lib/mongodb";
+import { pool } from "@/lib/database";
 import { Product } from "@/lib/models";
 
 export async function POST(request: NextRequest) {
@@ -14,7 +14,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await connectDB();
 
     // If penalty was paid, reactivate the product for re-listing
     if (paymentType === "penalty") {
@@ -28,18 +27,15 @@ export async function POST(request: NextRequest) {
       }
 
       // Reset auction status to allow seller to re-list
-      product.auctionActive = false;
-      product.auctionEndTime = null;
-      product.currentBid = product.startingPrice;
-      product.bidCount = 0;
-      product.highestBidderEmail = null;
-      
-      // Mark that a penalty was paid (for record keeping)
-      product.penaltyPaid = true;
-      product.penaltyPaidBy = product.highestBidderEmail;
-      product.penaltyPaidAt = new Date();
-      
-      await product.save();
+      await Product.findByIdAndUpdate(productId, {
+        auctionStatus: 'none',
+        hasAuction: false,
+        auctionEndTime: null,
+        currentBid: product.startingBid || 0,
+        totalBids: 0,
+        highestBidderEmail: null,
+        highestBidder: null
+      });
 
       return NextResponse.json({
         success: true,
@@ -58,11 +54,11 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      product.status = "sold";
-      product.auctionActive = false;
-      product.soldAt = new Date();
-      
-      await product.save();
+      await Product.findByIdAndUpdate(productId, {
+        auctionStatus: 'ended',
+        hasAuction: false,
+        isActive: false
+      });
 
       return NextResponse.json({
         success: true,

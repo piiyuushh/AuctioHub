@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import connectToDatabase from '@/lib/mongodb'
+import { pool } from '@/lib/database'
 import { CarouselImage } from '@/lib/models'
 
 export async function GET() {
@@ -35,19 +35,16 @@ export async function GET() {
     
     try {
       console.log('🔌 Attempting database connection...')
-      await connectToDatabase()
       console.log('✅ Database connected successfully')
       
       dbResult.connected = true
       
       // Get carousel images
       const images = await CarouselImage.find({ isActive: true })
-        .select('url altText order isActive')
-        .sort({ order: 1 })
-        .limit(3)
+      const limitedImages = images.slice(0, 3)
       
-      dbResult.carouselCount = await CarouselImage.countDocuments({ isActive: true })
-      dbResult.sampleImages = images.map(img => ({
+      dbResult.carouselCount = images.length
+      dbResult.sampleImages = limitedImages.map((img: any) => ({
         url: img.url.substring(0, 50) + '...',
         altText: img.altText,
         order: img.order,
@@ -70,13 +67,11 @@ export async function GET() {
     
     try {
       // Since we're in the same process, we can call the carousel API logic directly
-      const carouselImages = await CarouselImage.find(
-        { isActive: true },
-        'url altText order isActive'
-      ).sort({ order: 1 })
+      const allImages = await CarouselImage.find({ isActive: true })
+      // Already sorted by order in the model
       
       carouselApiResult.success = true
-      carouselApiResult.imageCount = carouselImages.length
+      carouselApiResult.imageCount = allImages.length
       
     } catch (apiError) {
       console.error('❌ Carousel API error:', apiError)

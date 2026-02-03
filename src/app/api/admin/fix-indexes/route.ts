@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import connectToDatabase from '@/lib/mongodb'
+import { pool } from '@/lib/database'
 import { User } from '@/lib/models'
 import mongoose from 'mongoose'
 
@@ -15,7 +15,6 @@ export async function POST() {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
-    await connectToDatabase()
     
     // Check if user is admin in database OR in admin emails list (fallback)
     const userEmail = session.user.email.toLowerCase()
@@ -111,7 +110,6 @@ export async function GET() {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
-    await connectToDatabase()
     
     const db = mongoose.connection.db
     if (!db) {

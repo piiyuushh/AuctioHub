@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from './auth'
-import connectToDatabase from './mongodb'
+import { pool } from './database'
 import { User } from './models'
 
 export async function isAdmin() {
@@ -15,13 +15,8 @@ export async function isAdmin() {
     const userEmail = session.user.email.toLowerCase()
     console.log('🔍 Checking admin status for:', userEmail)
     
-    // Connect to database and check user role
-    await connectToDatabase()
-    
-    // Check if user exists in database and has admin role (case-insensitive email match)
-    const dbUser = await User.findOne({ 
-      email: { $regex: new RegExp(`^${userEmail}$`, 'i') } 
-    })
+    // Check if user exists in database and has admin role
+    const dbUser = await User.findOne({ email: userEmail })
     
     if (!dbUser) {
       console.log('❌ User not found in database')
@@ -56,12 +51,8 @@ export async function getCurrentUser() {
     const session = await getServerSession(authOptions)
     if (!session?.user?.email) return null
     
-    await connectToDatabase()
-    
     const userEmail = session.user.email.toLowerCase()
-    const dbUser = await User.findOne({ 
-      email: { $regex: new RegExp(`^${userEmail}$`, 'i') } 
-    })
+    const dbUser = await User.findOne({ email: userEmail })
     
     return dbUser
   } catch (error) {

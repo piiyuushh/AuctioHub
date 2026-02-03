@@ -1,20 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import connectToDatabase from '@/lib/mongodb'
+import { pool } from '@/lib/database'
 import { Product } from '@/lib/models'
 
 // GET - Fetch all active products (public) or single product by ID
 export async function GET(request: NextRequest) {
   try {
-    await connectToDatabase()
     
     const { searchParams } = new URL(request.url)
     const productId = searchParams.get('id')
     
     // If ID is provided, fetch single product
     if (productId) {
-      const product = await Product.findById(productId).lean()
+      const product = await Product.findById(productId)
       
       if (!product) {
         return NextResponse.json(
@@ -27,9 +26,11 @@ export async function GET(request: NextRequest) {
     }
     
     // Otherwise, fetch all products
-    const products = await Product.find({ isActive: true })
-      .sort({ createdAt: -1 })
-      .lean()
+    const allProducts = await Product.find({ isActive: true })
+    const products = allProducts.sort((a, b) => 
+      new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()
+    )
+      
     
     return NextResponse.json(products)
   } catch (error) {
@@ -70,7 +71,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    await connectToDatabase()
     
     const productData: any = {
       userId: session.user.id,
@@ -134,7 +134,6 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    await connectToDatabase()
     
     const product = await Product.findById(productId)
     
@@ -167,14 +166,18 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update other fields
-    if (title) product.title = title
-    if (description) product.description = description
-    if (imageUrl) product.imageUrl = imageUrl
-    if (cloudinary_public_id !== undefined) product.cloudinary_public_id = cloudinary_public_id
+    const updateData: any = {}
+    if (title) updateData.title = title
+    if (description) updateData.description = description
+    if (imageUrl) updateData.imageUrl = imageUrl
+    if (cloudinary_public_id !== undefined) updateData.cloudinary_public_id = cloudinary_public_id
     
-    await product.save()
+    if (Object.keys(updateData).length > 0) {
+      await Product.findByIdAndUpdate(productId, updateData)
+    }
 
-    return NextResponse.json(product)
+    const updatedProduct = await Product.findById(productId)
+    return NextResponse.json(updatedProduct)
   } catch (error) {
     console.error('Error updating product:', error)
     return NextResponse.json(
@@ -206,7 +209,6 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    await connectToDatabase()
     
     const product = await Product.findById(productId)
     

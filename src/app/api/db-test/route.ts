@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import connectToDatabase from '@/lib/mongodb'
+import { pool } from '@/lib/database'
 import { User, CarouselImage } from '@/lib/models'
 
 export async function GET() {
@@ -7,20 +7,21 @@ export async function GET() {
     console.log('🧪 Testing database connection...')
     
     // Test connection
-    await connectToDatabase()
     console.log('✅ Database connection successful')
     
     // Test User model
-    const userCount = await User.countDocuments()
+    const allUsers = await User.find({})
+    const userCount = allUsers.length
     console.log('👥 User count:', userCount)
     
     // Test CarouselImage model
-    const imageCount = await CarouselImage.countDocuments()
+    const allImages = await CarouselImage.find({})
+    const imageCount = allImages.length
     console.log('🖼️ Carousel image count:', imageCount)
     
     // Get sample data
-    const sampleUser = await User.findOne().select('email role createdAt')
-    const sampleImage = await CarouselImage.findOne().select('url altText isActive')
+    const sampleUser = allUsers[0] || null
+    const sampleImage = allImages[0] || null
     
     return NextResponse.json({
       success: true,

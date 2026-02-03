@@ -1,18 +1,16 @@
 import { NextResponse } from 'next/server'
-import connectToDatabase from '@/lib/mongodb'
+import { pool } from '@/lib/database'
 import { NewArrival } from '@/lib/models'
 
 // Get active new arrival products for public display
 export async function GET() {
   try {
     console.log('🔍 Getting active new arrival products...')
-    await connectToDatabase()
     
     // Only return active products for public endpoint
-    const products = await NewArrival.find({ isActive: true })
-      .sort({ order: 1 })
-      .limit(4) // Limit to 4 products as shown in the component
-      .exec()
+    const allProducts = await NewArrival.find({ isActive: true })
+    // Already sorted by order in the model
+    const products = allProducts.slice(0, 4) // Limit to 4 products as shown in the component
     
     console.log('✅ Found active new arrival products:', products.length)
     return NextResponse.json(products)

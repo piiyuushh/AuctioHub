@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import connectToDatabase from '@/lib/mongodb'
+import { pool } from '@/lib/database'
 import { Product, Bid } from '@/lib/models'
 
 // POST - Place a bid on a product
@@ -25,7 +25,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    await connectToDatabase()
     
     const product = await Product.findById(productId)
     
@@ -54,8 +53,7 @@ export async function POST(request: NextRequest) {
 
     // Check if auction time has expired
     if (product.auctionEndTime && new Date(product.auctionEndTime) < new Date()) {
-      product.auctionStatus = 'ended'
-      await product.save()
+      await Product.findByIdAndUpdate(productId, { auctionStatus: 'ended' })
       return NextResponse.json(
         { error: 'This auction has ended' },
         { status: 400 }
@@ -97,11 +95,12 @@ export async function POST(request: NextRequest) {
     })
 
     // Update product with new highest bid
-    product.currentBid = bidAmount
-    product.highestBidder = session.user.id
-    product.highestBidderEmail = session.user.email
-    product.totalBids = (product.totalBids || 0) + 1
-    await product.save()
+    await Product.findByIdAndUpdate(productId, {
+      currentBid: bidAmount,
+      highestBidder: session.user.id,
+      highestBidderEmail: session.user.email,
+      $inc: { totalBids: 1 }
+    })
 
     return NextResponse.json({
       success: true,
@@ -136,13 +135,17 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    await connectToDatabase()
     
     const bids = await Bid.find({ productId })
-      .sort({ bidAmount: -1, createdAt: -1 })
-      .lean()
+    // Sort in JavaScript since PostgreSQL model returns array
+    const sortedBids = bids.sort((a, b) => {
+      if (b.bidAmount !== a.bidAmount) {
+        return b.bidAmount - a.bidAmount
+      }
+      return new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()
+    })
     
-    return NextResponse.json(bids)
+    return NextResponse.json(sortedBids)
   } catch (error) {
     console.error('Error fetching bids:', error)
     return NextResponse.json(

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/admin'
-import connectToDatabase from '@/lib/mongodb'
+import { pool } from '@/lib/database'
 import { User } from '@/lib/models'
 
 // GET - Fetch all users
@@ -20,13 +20,13 @@ export async function GET() {
     }
     
     // Connect to database
-    await connectToDatabase()
     
     // Fetch all users, sorted by creation date (newest first)
-    const users = await User.find({})
-      .select('_id googleId email name role createdAt updatedAt')
-      .sort({ createdAt: -1 })
-      .lean()
+    const allUsers = await User.find({})
+    const users = allUsers.sort((a, b) => 
+      new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()
+    )
+      
     
     console.log(`✅ Found ${users.length} users`)
     
@@ -65,7 +65,6 @@ export async function PUT(request: NextRequest) {
     }
     
     // Connect to database
-    await connectToDatabase()
     
     // Find the user
     const user = await User.findById(userId)
@@ -88,18 +87,25 @@ export async function PUT(request: NextRequest) {
     }
     
     // Update user role
-    user.role = role
-    await user.save()
+    await User.findByIdAndUpdate(userId, { role })
+    const updatedUser = await User.findById(userId)
     
-    console.log(`✅ Updated user ${user.email} role to ${role}`)
+    if (!updatedUser) {
+      return NextResponse.json(
+        { error: 'Failed to update user' },
+        { status: 500 }
+      )
+    }
+    
+    console.log(`✅ Updated user ${updatedUser.email} role to ${role}`)
     
     return NextResponse.json({
       message: `User role updated to ${role} successfully`,
       user: {
-        _id: user._id,
-        email: user.email,
-        role: user.role,
-        googleId: user.googleId
+        _id: updatedUser._id,
+        email: updatedUser.email,
+        role: updatedUser.role,
+        googleId: updatedUser.googleId
       }
     })
   } catch (error) {
@@ -138,7 +144,6 @@ export async function POST(request: NextRequest) {
     }
     
     // Connect to database
-    await connectToDatabase()
     
     // Check if user already exists
     const existingUser = await User.findOne({ email })
@@ -151,8 +156,12 @@ export async function POST(request: NextRequest) {
         )
       }
       
+      const userId = existingUser._id || existingUser.id || ''
+      if (!userId) {
+        return NextResponse.json({ error: 'User ID not found' }, { status: 500 })
+      }
+      await User.findByIdAndUpdate(userId, { role: 'ADMIN' })
       existingUser.role = 'ADMIN'
-      await existingUser.save()
       
       return NextResponse.json({
         message: `Existing user ${email} has been promoted to admin`,
@@ -201,7 +210,6 @@ export async function DELETE(request: NextRequest) {
     }
     
     // Connect to database
-    await connectToDatabase()
     
     // Find the user
     const user = await User.findById(userId)

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import connectToDatabase from '@/lib/mongodb'
+import { pool } from '@/lib/database'
 import { Product } from '@/lib/models'
 
 // GET - Fetch current user's products
@@ -16,11 +16,12 @@ export async function GET() {
       )
     }
 
-    await connectToDatabase()
     
-    const products = await Product.find({ userEmail: session.user.email })
-      .sort({ createdAt: -1 })
-      .lean()
+    const allProducts = await Product.find({ userEmail: session.user.email })
+    const products = allProducts.sort((a, b) => 
+      new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()
+    )
+      
     
     return NextResponse.json(products)
   } catch (error) {

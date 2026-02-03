@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import connectToDatabase from '@/lib/mongodb'
+import { pool } from '@/lib/database'
 import { CarouselImage } from '@/lib/models'
 
 export async function GET() {
@@ -7,21 +7,19 @@ export async function GET() {
     console.log('🔍 Public Carousel Test: Starting...')
     
     // Test database connection
-    await connectToDatabase()
     console.log('✅ Database connected')
     
     // Get active carousel images (same logic as the main carousel endpoint)
-    const images = await CarouselImage.find(
-      { isActive: true },
-      'url altText order isActive createdAt'
-    ).sort({ order: 1 })
+    const images = await CarouselImage.find({ isActive: true })
+    // Already sorted by order in the model
     
     console.log(`📸 Found ${images.length} active carousel images`)
     
     // Also get all images (including inactive) for debugging
     const allImages = await CarouselImage.find({})
-      .select('url altText order isActive createdAt')
-      .sort({ createdAt: -1 })
+    const sortedAllImages = allImages.sort((a, b) => 
+      new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()
+    )
     
     console.log(`📸 Total images in database: ${allImages.length}`)
     
@@ -30,7 +28,7 @@ export async function GET() {
       activeImages: images,
       activeCount: images.length,
       totalImages: allImages.length,
-      allImages: allImages.map(img => ({
+      allImages: sortedAllImages.map((img: any) => ({
         url: img.url.substring(0, 50) + '...',
         altText: img.altText,
         order: img.order,

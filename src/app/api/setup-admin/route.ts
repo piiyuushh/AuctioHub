@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import connectToDatabase from '@/lib/mongodb'
+import { pool } from '@/lib/database'
 import { User } from '@/lib/models'
 
 // This endpoint helps set up the initial admin user
@@ -17,7 +17,6 @@ export async function GET() {
       }, { status: 401 })
     }
 
-    await connectToDatabase()
     
     const userEmail = session.user.email
     
@@ -30,8 +29,8 @@ export async function GET() {
     let user = await User.findOne({ email: userEmail })
     
     // Get all users for reporting
-    const allUsers = await User.find({}).lean()
-    const adminUsers = allUsers.filter(u => u.role === 'ADMIN')
+    const allUsers = await User.find({})
+    const adminUsers = allUsers.filter((u: any) => u.role === 'ADMIN')
     
     // If user doesn't exist but is in admin list, something is wrong
     if (!user) {
@@ -48,8 +47,12 @@ export async function GET() {
     
     // If user is in admin list but not an admin, promote them
     if (isInAdminList && user.role !== 'ADMIN') {
+      const userId = user._id || user.id || ''
+      if (!userId) {
+        return NextResponse.json({ error: 'User ID not found' }, { status: 500 })
+      }
+      await User.findByIdAndUpdate(userId, { role: 'ADMIN' })
       user.role = 'ADMIN'
-      await user.save()
       
       return NextResponse.json({
         status: 'promoted',
@@ -79,7 +82,7 @@ export async function GET() {
       database: {
         totalUsers: allUsers.length,
         adminCount: adminUsers.length,
-        users: allUsers.map(u => ({
+        users: allUsers.map((u: any) => ({
           email: u.email,
           name: u.name,
           role: u.role,
@@ -108,7 +111,6 @@ export async function POST() {
       }, { status: 401 })
     }
 
-    await connectToDatabase()
     
     const userEmail = session.user.email
     
@@ -149,8 +151,12 @@ export async function POST() {
     }
     
     // Update existing user to admin
+    const userId = user._id || user.id || ''
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID not found' }, { status: 500 })
+    }
+    await User.findByIdAndUpdate(userId, { role: 'ADMIN' })
     user.role = 'ADMIN'
-    await user.save()
     
     return NextResponse.json({
       status: 'updated',

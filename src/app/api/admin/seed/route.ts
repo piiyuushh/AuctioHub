@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server'
-import connectToDatabase from '@/lib/mongodb'
+import { pool } from '@/lib/database'
 import { CarouselImage } from '@/lib/models'
 import { requireAdmin } from '@/lib/admin'
 
 export async function POST() {
   try {
     await requireAdmin()
-    await connectToDatabase()
     
     // Check if carousel images already exist
     const existingCount = await CarouselImage.countDocuments()

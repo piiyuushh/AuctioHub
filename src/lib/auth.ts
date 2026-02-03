@@ -1,6 +1,6 @@
 import { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
-import connectToDatabase from "./mongodb";
+import { pool } from "./database";
 import { User } from "./models";
 
 // Log configuration status on startup
@@ -21,8 +21,6 @@ export const authOptions: NextAuthOptions = {
     async signIn({ user, account }) {
       if (account?.provider === "google") {
         try {
-          await connectToDatabase();
-          
           const email = user.email?.toLowerCase();
           const googleId = account.providerAccountId;
           
@@ -33,30 +31,30 @@ export const authOptions: NextAuthOptions = {
           const adminEmails = adminEmailsRaw.map(e => e.replace(/^["']|["']$/g, ''));
           const isInitialAdmin = adminEmails.includes(email || '');
           
-          // Use findOneAndUpdate with upsert for atomic operation
-          // This handles both new users and existing users in one operation
-          const updatedUser = await User.findOneAndUpdate(
-            { email }, // Find by email (primary identifier)
-            {
-              $set: {
+          // Check if user exists
+          const existingUser = await User.findOne({ email });
+          
+          if (existingUser) {
+            // Update existing user
+            const userId = existingUser._id || existingUser.id || '';
+            if (userId) {
+              await User.findByIdAndUpdate(userId, {
                 googleId,
                 name: user.name || '',
                 image: user.image || '',
-              },
-              $setOnInsert: {
-                email,
-                role: isInitialAdmin ? 'ADMIN' : 'USER',
-              }
-            },
-            { 
-              upsert: true, // Create if doesn't exist
-              new: true,    // Return the updated document
-              runValidators: true 
+              });
+              console.log(`✅ User signed in: ${email} (Role: ${existingUser.role})`);
             }
-          );
-          
-          if (updatedUser) {
-            console.log(`✅ User signed in: ${email} (Role: ${updatedUser.role})`);
+          } else {
+            // Create new user
+            const newUser = await User.create({
+              email: email || '',
+              googleId,
+              name: user.name || '',
+              image: user.image || '',
+              role: isInitialAdmin ? 'ADMIN' : 'USER',
+            });
+            console.log(`✅ New user created: ${email} (Role: ${newUser.role})`);
           }
           
           return true;
@@ -66,31 +64,25 @@ export const authOptions: NextAuthOptions = {
           console.error("❌ Error message:", error.message);
           
           // Handle duplicate key error - try to clean up and retry
-          if (error.code === 11000) {
+          if (error.code === '23505') { // PostgreSQL unique violation
             console.log("🔄 Duplicate key error, attempting to fix...");
             try {
               // If there's a duplicate googleId, update the existing record
               const email = user.email?.toLowerCase();
               const googleId = account.providerAccountId;
               
-              // First, remove googleId from any other user that might have it
-              await User.updateMany(
-                { googleId, email: { $ne: email } },
-                { $unset: { googleId: 1 } }
-              );
-              
-              // Now try to update/create again
-              await User.findOneAndUpdate(
-                { email },
-                {
-                  $set: {
+              // Find user by email and update
+              const existingUser = await User.findOne({ email });
+              if (existingUser) {
+                const userId = existingUser._id || existingUser.id || '';
+                if (userId) {
+                  await User.findByIdAndUpdate(userId, {
                     googleId,
                     name: user.name || '',
                     image: user.image || '',
-                  }
-                },
-                { upsert: true, new: true }
-              );
+                  });
+                }
+              }
               
               console.log("✅ Fixed duplicate key issue and signed in user");
               return true;
@@ -108,14 +100,11 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user, account }) {
       if (account && user) {
         try {
-          await connectToDatabase();
           const email = user.email?.toLowerCase();
-          const dbUser = await User.findOne({ 
-            email: { $regex: new RegExp(`^${email}$`, 'i') } 
-          });
+          const dbUser = await User.findOne({ email });
           
           if (dbUser) {
-            token.id = dbUser._id.toString();
+            token.id = (dbUser._id || dbUser.id || '').toString();
             token.googleId = dbUser.googleId;
             token.role = dbUser.role;
           } else {

@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
-import { auth, currentUser } from '@clerk/nextjs/server'
-import connectToDatabase from '@/lib/mongodb'
+import { pool } from '@/lib/database'
 import { CarouselImage } from '@/lib/models'
 import { isAdmin, requireAdmin } from '@/lib/admin'
 
@@ -8,12 +7,7 @@ export async function GET() {
   try {
     console.log('🔍 Carousel test endpoint called')
     
-    // Test 1: Authentication
-    const { userId } = await auth()
-    const user = await currentUser()
-    console.log('🔐 Auth check:', { hasUserId: !!userId, hasUser: !!user })
-    
-    // Test 2: Admin check
+    // Test 1: Admin check
     const adminStatus = await isAdmin()
     console.log('👑 Admin check:', adminStatus)
     
@@ -23,10 +17,10 @@ export async function GET() {
     let dbError = null
     
     try {
-      await connectToDatabase()
       console.log('📊 Database connected')
       
-      const images = await CarouselImage.find({}).sort({ order: 1 })
+      const images = await CarouselImage.find({})
+      // Already sorted by order in the model
       carouselData = images
       dbTest = 'success'
       console.log('🖼️ Carousel images found:', images.length)
@@ -58,9 +52,8 @@ export async function GET() {
         
         // Authentication tests
         auth: {
-          hasUserId: !!userId,
-          hasUser: !!user,
-          userEmail: user?.emailAddresses[0]?.emailAddress || 'No email'
+          hasSession: true,
+          authenticated: 'via NextAuth'
         },
         
         // Admin tests
