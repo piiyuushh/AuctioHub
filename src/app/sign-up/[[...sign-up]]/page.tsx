@@ -8,11 +8,10 @@ import { Suspense } from "react";
 
 function SignUpContent() {
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/";
   const error = searchParams.get("error");
 
   const handleGoogleSignUp = () => {
-    signIn("google", { callbackUrl });
+    signIn("google", { callbackUrl: "/google-callback/signup-callback" });
   };
 
   return (
