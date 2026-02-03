@@ -12,7 +12,7 @@ export async function DELETE() {
   try {
     await requireAdmin()
 
-    console.log('🗑️ Starting bulk Cloudinary cleanup...')
+    console.log('Starting bulk Cloudinary cleanup...')
 
     // Get all resources from the tokari-banners folder
     const result = await cloudinary.api.resources({
@@ -29,7 +29,7 @@ export async function DELETE() {
       })
     }
 
-    console.log(`📦 Found ${result.resources.length} images to delete`)
+    console.log(`Found ${result.resources.length} images to delete`)
 
     // Delete each image
     const publicIds = result.resources.map((resource: any) => resource.public_id)
@@ -41,7 +41,7 @@ export async function DELETE() {
       (key) => deleteResult.deleted[key] === 'deleted'
     ).length
 
-    console.log(`✅ Deleted ${deletedCount} images from Cloudinary`)
+    console.log(`Deleted ${deletedCount} images from Cloudinary`)
 
     return NextResponse.json({
       success: true,
@@ -50,7 +50,7 @@ export async function DELETE() {
       details: deleteResult,
     })
   } catch (error: any) {
-    console.error('❌ Error clearing Cloudinary:', error)
+    console.error('Error clearing Cloudinary:', error)
     return NextResponse.json(
       {
         error: 'Failed to clear Cloudinary images',
@@ -83,7 +83,7 @@ export async function GET() {
       })),
     })
   } catch (error: any) {
-    console.error('❌ Error listing Cloudinary images:', error)
+    console.error('Error listing Cloudinary images:', error)
     return NextResponse.json(
       {
         error: 'Failed to list Cloudinary images',

@@ -45,12 +45,12 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    console.log('🗑️ Attempting to delete image from Cloudinary:', targetPublicId)
+    console.log('Attempting to delete image from Cloudinary:', targetPublicId)
 
     // Delete from Cloudinary
     const result = await cloudinary.uploader.destroy(targetPublicId)
     
-    console.log('🔄 Cloudinary deletion result:', result)
+    console.log('Cloudinary deletion result:', result)
 
     if (result.result === 'ok') {
       return NextResponse.json({
@@ -76,7 +76,7 @@ export async function DELETE(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('❌ Error deleting image from Cloudinary:', error)
+    console.error('Error deleting image from Cloudinary:', error)
     
     if (error instanceof Error && error.message.includes('Admin access required')) {
       return NextResponse.json(

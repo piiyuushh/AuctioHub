@@ -98,7 +98,7 @@ const Footer: React.FC = () => {
               Terms of Service
             </Link>
             <a
-              href='https://sajilo-ui.vercel.app/'
+              href='https://sajiloui.vercel.app/'
               target='_blank'
               rel='noopener noreferrer'
               className='hover:text-[#F7F7F7] transition-colors'

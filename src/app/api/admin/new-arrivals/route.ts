@@ -1,23 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
-import connectToDatabase from '@/lib/mongodb'
+import { pool } from '@/lib/database'
 import { NewArrival } from '@/lib/models'
 import { requireAdmin } from '@/lib/admin'
 
 // Get all new arrival products (both active and inactive for admin)
 export async function GET() {
   try {
-    console.log('🔍 Getting new arrival products...')
-    await connectToDatabase()
+    console.log('Getting new arrival products...')
     
     // For admin endpoint, return both active and inactive products
     const products = await NewArrival.find({})
-      .sort({ order: 1 })
-      .exec()
+    // Already sorted by order in the model
+      
     
-    console.log('✅ Found new arrival products:', products.length)
+    console.log('Found new arrival products:', products.length)
     return NextResponse.json(products)
   } catch (error) {
-    console.error('❌ New Arrivals GET Error:', {
+    console.error('New Arrivals GET Error:', {
       message: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       timestamp: new Date().toISOString()
@@ -37,7 +36,6 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     await requireAdmin()
-    await connectToDatabase()
     
     const { title, description, imageUrl, link } = await request.json()
     
@@ -58,10 +56,10 @@ export async function POST(request: NextRequest) {
     }
     
     // Get the highest order number and add 1
-    const lastProduct = await NewArrival.findOne({}).sort({ order: -1 })
+    const lastProduct = await NewArrival.findOne({})
     const nextOrder = lastProduct ? lastProduct.order + 1 : 1
     
-    const newProduct = new NewArrival({
+    const newProduct = await NewArrival.create({
       title,
       description,
       imageUrl,
@@ -70,12 +68,10 @@ export async function POST(request: NextRequest) {
       isActive: true
     })
     
-    await newProduct.save()
-    
-    console.log('✅ Created new arrival product:', newProduct._id)
+    console.log('Created new arrival product:', newProduct._id)
     return NextResponse.json(newProduct, { status: 201 })
   } catch (error) {
-    console.error('❌ New Arrivals POST Error:', {
+    console.error('New Arrivals POST Error:', {
       message: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       timestamp: new Date().toISOString()
@@ -95,7 +91,6 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     await requireAdmin()
-    await connectToDatabase()
     
     const { id, title, description, imageUrl, link, order, isActive } = await request.json()
     
@@ -123,8 +118,7 @@ export async function PUT(request: NextRequest) {
     
     const updatedProduct = await NewArrival.findByIdAndUpdate(
       id,
-      updateData,
-      { new: true, runValidators: true }
+      updateData
     )
     
     if (!updatedProduct) {
@@ -134,10 +128,10 @@ export async function PUT(request: NextRequest) {
       )
     }
     
-    console.log('✅ Updated new arrival product:', updatedProduct._id)
+    console.log('Updated new arrival product:', updatedProduct._id)
     return NextResponse.json(updatedProduct)
   } catch (error) {
-    console.error('❌ New Arrivals PUT Error:', {
+    console.error('New Arrivals PUT Error:', {
       message: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       timestamp: new Date().toISOString()
@@ -157,7 +151,6 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     await requireAdmin()
-    await connectToDatabase()
     
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
@@ -169,19 +162,12 @@ export async function DELETE(request: NextRequest) {
       )
     }
     
-    const deletedProduct = await NewArrival.findByIdAndDelete(id)
+    await NewArrival.findByIdAndDelete(id)
     
-    if (!deletedProduct) {
-      return NextResponse.json(
-        { error: 'Product not found' },
-        { status: 404 }
-      )
-    }
-    
-    console.log('✅ Deleted new arrival product:', deletedProduct._id)
+    console.log('Deleted new arrival product:', id)
     return NextResponse.json({ message: 'Product deleted successfully' })
   } catch (error) {
-    console.error('❌ New Arrivals DELETE Error:', {
+    console.error('New Arrivals DELETE Error:', {
       message: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       timestamp: new Date().toISOString()

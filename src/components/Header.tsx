@@ -387,8 +387,8 @@ export function Header() {
               {/* Footer */}
               <div className="mobile-menu-section footer-section p-4 border-t border-gray-100 bg-gray-50 mt-auto">
                 <div className="text-center">
-                  <p className="text-sm font-medium text-gray-700">© 2025 Tokari.com.np</p>
-                  <p className="text-xs text-gray-500 mt-1">Find your best deal here</p>
+                  <p className="text-sm font-medium text-gray-700">© 2025 AuctioHub.com.np</p>
+                  <p className="text-xs text-gray-500 mt-1">Bid Smart. Win Big</p>
                 </div>
               </div>
             </div>

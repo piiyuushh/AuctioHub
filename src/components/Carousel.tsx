@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
+import Link from "next/link";
 
 interface CarouselImage {
   _id?: string;
@@ -16,7 +17,6 @@ const fallbackImages = [
   "/assets/banners/banner 1.png",
   "/assets/banners/banner 2.png",
   "/assets/banners/banner 3.png",
-  "/assets/banners/banner 4.png",
 ];
 
 const HeroCarousel = () => {
@@ -151,7 +151,7 @@ const HeroCarousel = () => {
             </div>
 
             {/* Gradient Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-r from-[#1E293B]/90 via-[#1E293B]/60 to-transparent" />
+            {/* <div className="absolute inset-0 bg-gradient-to-r from-[#1E293B]/90 via-[#1E293B]/60 to-transparent" /> */}
 
             {/* Content */}
             <div className="relative h-full max-w-[1800px] mx-auto px-6 lg:px-16 xl:px-24 flex items-center">
@@ -166,19 +166,21 @@ const HeroCarousel = () => {
 
                 {/* Title */}
                 <h1 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-white mb-6 leading-tight">
-                  Rare Timepieces Collection
+                  Build Your Collection
                 </h1>
 
                 {/* Description */}
                 <p className="text-base md:text-lg lg:text-xl text-gray-200 mb-8 leading-relaxed">
-                  Discover exclusive vintage watches from top collectors worldwide. Bidding ends in 24 hours.
+                  Discover exclusive vintage watches from top collectors worldwide
                 </p>
 
                 {/* CTAs */}
                 <div className="flex flex-wrap gap-4">
+                  <Link href="/category">
                   <button className="px-6 md:px-8 py-3 md:py-4 bg-[#F59E0B] hover:bg-[#D97706] text-white font-semibold rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
                     Start Bidding
                   </button>
+                  </Link>
                   <button className="px-6 md:px-8 py-3 md:py-4 bg-transparent border-2 border-white text-white font-semibold rounded-lg hover:bg-white/10 transition-all duration-300">
                     Learn More
                   </button>

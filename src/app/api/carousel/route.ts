@@ -1,17 +1,14 @@
 import { NextResponse } from 'next/server'
-import connectToDatabase from '@/lib/mongodb'
+import { pool } from '@/lib/database'
 import { CarouselImage } from '@/lib/models'
 
 export async function GET() {
   try {
-    await connectToDatabase()
     
     // Public endpoint - no authentication required
     // Only return active images ordered by their order field
-    const images = await CarouselImage.find(
-      { isActive: true },
-      'url altText order isActive' // Only select needed fields
-    ).sort({ order: 1 })
+    const images = await CarouselImage.find({ isActive: true })
+    // Already sorted by order in the model
     
     return NextResponse.json(images)
   } catch (error) {

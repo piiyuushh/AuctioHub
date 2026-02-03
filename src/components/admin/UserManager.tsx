@@ -56,7 +56,7 @@ export default function UserManager() {
   const updateUserRole = async (userId: string, newRole: 'USER' | 'ADMIN', currentRole: string, userEmail: string) => {
     // Special confirmation for demoting admin to user
     if (currentRole === 'ADMIN' && newRole === 'USER') {
-      const confirmMessage = `⚠️ WARNING: You are about to remove admin privileges from "${userEmail}".\n\nThis will:\n- Revoke their admin access\n- Remove them from the admin dashboard\n- Convert them to a regular user\n\nNote: If this is the last admin user, the demotion will be blocked to ensure system access.\n\nAre you sure you want to proceed?`
+      const confirmMessage = `WARNING: You are about to remove admin privileges from "${userEmail}".\n\nThis will:\n- Revoke their admin access\n- Remove them from the admin dashboard\n- Convert them to a regular user\n\nNote: If this is the last admin user, the demotion will be blocked to ensure system access.\n\nAre you sure you want to proceed?`
       
       if (!window.confirm(confirmMessage)) {
         return
@@ -130,7 +130,7 @@ export default function UserManager() {
     // Special warning for admin users
     const isAdmin = userRole === 'ADMIN'
     const confirmMessage = isAdmin 
-      ? `⚠️ WARNING: You are about to remove an ADMIN user "${userEmail}" from the system!\n\nThis will:\n- Delete them from the database\n- Revoke all admin privileges\n\nNote: If this is the last admin user, the removal will be blocked to ensure system access.\n\nThis action cannot be undone. Are you absolutely sure?`
+      ? `WARNING: You are about to remove an ADMIN user "${userEmail}" from the system!\n\nThis will:\n- Delete them from the database\n- Revoke all admin privileges\n\nNote: If this is the last admin user, the removal will be blocked to ensure system access.\n\nThis action cannot be undone. Are you absolutely sure?`
       : `Are you sure you want to permanently remove user "${userEmail}" from the system?\n\nThis will delete them from the database.\n\nThis action cannot be undone.`
     
     if (!window.confirm(confirmMessage)) {

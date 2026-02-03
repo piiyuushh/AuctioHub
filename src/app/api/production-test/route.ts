@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
-import connectToDatabase from '@/lib/mongodb'
+import { pool } from '@/lib/database'
 import { CarouselImage } from '@/lib/models'
 
 export async function GET() {
   try {
-    console.log('🔍 Production Debug: Starting comprehensive test...')
+    console.log('Production Debug: Starting comprehensive test...')
     
     // Check environment variables
     const envCheck = {
@@ -18,7 +18,7 @@ export async function GET() {
       hasCloudinary: !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET)
     }
     
-    console.log('🔍 Environment check:', envCheck)
+    console.log('Environment check:', envCheck)
     
     // Test database connection
     const dbResult = {
@@ -34,30 +34,27 @@ export async function GET() {
     }
     
     try {
-      console.log('🔌 Attempting database connection...')
-      await connectToDatabase()
-      console.log('✅ Database connected successfully')
+      console.log('Attempting database connection...')
+      console.log('Database connected successfully')
       
       dbResult.connected = true
       
       // Get carousel images
       const images = await CarouselImage.find({ isActive: true })
-        .select('url altText order isActive')
-        .sort({ order: 1 })
-        .limit(3)
+      const limitedImages = images.slice(0, 3)
       
-      dbResult.carouselCount = await CarouselImage.countDocuments({ isActive: true })
-      dbResult.sampleImages = images.map(img => ({
+      dbResult.carouselCount = images.length
+      dbResult.sampleImages = limitedImages.map((img: any) => ({
         url: img.url.substring(0, 50) + '...',
         altText: img.altText,
         order: img.order,
         isActive: img.isActive
       }))
       
-      console.log(`✅ Found ${dbResult.carouselCount} active carousel images`)
+      console.log(`Found ${dbResult.carouselCount} active carousel images`)
       
     } catch (dbError) {
-      console.error('❌ Database error:', dbError)
+      console.error('Database error:', dbError)
       dbResult.error = dbError instanceof Error ? dbError.message : 'Unknown database error'
     }
     
@@ -70,16 +67,14 @@ export async function GET() {
     
     try {
       // Since we're in the same process, we can call the carousel API logic directly
-      const carouselImages = await CarouselImage.find(
-        { isActive: true },
-        'url altText order isActive'
-      ).sort({ order: 1 })
+      const allImages = await CarouselImage.find({ isActive: true })
+      // Already sorted by order in the model
       
       carouselApiResult.success = true
-      carouselApiResult.imageCount = carouselImages.length
+      carouselApiResult.imageCount = allImages.length
       
     } catch (apiError) {
-      console.error('❌ Carousel API error:', apiError)
+      console.error('Carousel API error:', apiError)
       carouselApiResult.error = apiError instanceof Error ? apiError.message : 'Unknown API error'
     }
     
@@ -100,7 +95,7 @@ export async function GET() {
     })
     
   } catch (error) {
-    console.error('❌ Production debug error:', error)
+    console.error('Production debug error:', error)
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',

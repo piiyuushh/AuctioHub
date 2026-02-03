@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import connectToDatabase from '@/lib/mongodb'
+import { pool } from '@/lib/database'
 import { CarouselImage } from '@/lib/models'
 import { isAdmin } from '@/lib/admin'
 
 export async function GET() {
   try {
-    console.log('🔍 Production Debug Endpoint Called')
+    console.log('Production Debug Endpoint Called')
     
     // Test 1: Environment Variables
     const envCheck = {
@@ -54,11 +54,11 @@ export async function GET() {
     }
     
     try {
-      await connectToDatabase()
-      console.log('📊 Database connected successfully')
+      console.log('Database connected successfully')
       
-      const count = await CarouselImage.countDocuments()
-      const images = await CarouselImage.find({}).limit(3).lean()
+      const allImages = await CarouselImage.find({})
+      const count = allImages.length
+      const images = allImages.slice(0, 3)
       
       dbTest = {
         connected: true,

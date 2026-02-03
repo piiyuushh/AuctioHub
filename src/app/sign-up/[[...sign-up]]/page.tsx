@@ -16,55 +16,55 @@ function SignUpContent() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F7F7F7] px-4 py-12">
+    <div className="min-h-screen flex items-center justify-center bg-[#F6F4EB] px-4 py-12">
       <div className="w-full max-w-6xl grid md:grid-cols-2 gap-8 items-center">
         {/* Left side - Branding */}
         <div className="hidden md:flex flex-col justify-center space-y-6 px-8">
           <div className="space-y-4">
-            <h1 className="text-5xl font-bold text-[#393E46]">
+            <h1 className="text-5xl font-bold text-[#4682A9]">
               Join<br />
-              <span className="text-[#929AAB]">AuctioHub</span> Today
+              <span className="text-[#749BC2]">AuctioHub</span> Today
             </h1>
-            <p className="text-lg text-[#393E46]/70">
+            <p className="text-lg text-[#4682A9]/70">
               Create your account and start bidding on exclusive items. Win big with smart bidding!
             </p>
           </div>
           <div className="space-y-4">
             <div className="flex items-start space-x-3">
-              <div className="w-8 h-8 rounded-full bg-[#393E46] flex items-center justify-center flex-shrink-0">
+              <div className="w-8 h-8 rounded-full bg-[#4682A9] flex items-center justify-center flex-shrink-0">
                 <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold text-[#393E46]">Free Registration</h3>
-                <p className="text-sm text-[#393E46]/60">Sign up in seconds with your Google account</p>
+                <h3 className="font-semibold text-[#4682A9]">Free Registration</h3>
+                <p className="text-sm text-[#4682A9]/60">Sign up in seconds with your Google account</p>
               </div>
             </div>
             <div className="flex items-start space-x-3">
-              <div className="w-8 h-8 rounded-full bg-[#393E46] flex items-center justify-center flex-shrink-0">
+              <div className="w-8 h-8 rounded-full bg-[#4682A9] flex items-center justify-center flex-shrink-0">
                 <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold text-[#393E46]">Exclusive Access</h3>
-                <p className="text-sm text-[#393E46]/60">Get early access to premium auctions</p>
+                <h3 className="font-semibold text-[#4682A9]">Exclusive Access</h3>
+                <p className="text-sm text-[#4682A9]/60">Get early access to premium auctions</p>
               </div>
             </div>
             <div className="flex items-start space-x-3">
-              <div className="w-8 h-8 rounded-full bg-[#393E46] flex items-center justify-center flex-shrink-0">
+              <div className="w-8 h-8 rounded-full bg-[#4682A9] flex items-center justify-center flex-shrink-0">
                 <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold text-[#393E46]">Track Your Bids</h3>
-                <p className="text-sm text-[#393E46]/60">Monitor all your auctions in one place</p>
+                <h3 className="font-semibold text-[#4682A9]">Track Your Bids</h3>
+                <p className="text-sm text-[#4682A9]/60">Monitor all your auctions in one place</p>
               </div>
             </div>
           </div>
-          <div className="bg-[#393E46] text-white p-6 rounded-xl">
+          <div className="bg-[#4682A9] text-white p-6 rounded-xl">
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-medium">Active Users</span>
               <span className="text-2xl font-bold">1,000+</span>
@@ -77,7 +77,7 @@ function SignUpContent() {
           <div className="pt-6">
             <Link
               href="/"
-              className="inline-flex items-center text-[#929AAB] hover:text-[#393E46] transition-colors"
+              className="inline-flex items-center text-[#749BC2] hover:text-[#4682A9] transition-colors"
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -88,7 +88,7 @@ function SignUpContent() {
         </div>
 
         {/* Right side - Sign Up Form */}
-        <div className="bg-white p-8 rounded-2xl shadow-lg border border-[#EEEEEE]">
+        <div className="bg-white p-8 rounded-2xl shadow-lg border border-[#91C8E4]">
           <div className="text-center mb-8">
             <Link href="/" className="inline-block mb-6">
               <Image
@@ -99,8 +99,8 @@ function SignUpContent() {
                 className="mx-auto"
               />
             </Link>
-            <h2 className="text-3xl font-bold text-[#393E46] mb-2">Create Account</h2>
-            <p className="text-[#929AAB]">Start your bidding journey</p>
+            <h2 className="text-3xl font-bold text-[#4682A9] mb-2">Create Account</h2>
+            <p className="text-[#749BC2]">Start your bidding journey</p>
           </div>
 
           {/* Error Message */}
@@ -119,7 +119,7 @@ function SignUpContent() {
           {/* Google Sign Up Button */}
           <button
             onClick={handleGoogleSignUp}
-            className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-white border-2 border-[#EEEEEE] rounded-xl text-[#393E46] font-semibold hover:bg-[#F7F7F7] hover:border-[#929AAB] transition-all duration-300 shadow-sm hover:shadow-md"
+            className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-white border-2 border-[#91C8E4] rounded-xl text-[#4682A9] font-semibold hover:bg-[#F6F4EB] hover:border-[#749BC2] transition-all duration-300 shadow-sm hover:shadow-md"
           >
             <svg className="w-6 h-6" viewBox="0 0 24 24">
               <path
@@ -143,8 +143,8 @@ function SignUpContent() {
           </button>
 
           {/* Info Text */}
-          <div className="mt-6 p-4 bg-[#F7F7F7] rounded-lg">
-            <p className="text-sm text-[#929AAB] text-center">
+          <div className="mt-6 p-4 bg-[#F6F4EB] rounded-lg">
+            <p className="text-sm text-[#749BC2] text-center">
               By signing up with Google, your account will be created automatically with default &quot;User&quot; role.
             </p>
           </div>
@@ -152,39 +152,39 @@ function SignUpContent() {
           {/* Divider */}
           <div className="relative my-8">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-[#EEEEEE]"></div>
+              <div className="w-full border-t border-[#91C8E4]"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-[#929AAB]">Already have an account?</span>
+              <span className="px-4 bg-white text-[#749BC2]">Already have an account?</span>
             </div>
           </div>
 
           {/* Sign In Link */}
           <Link
             href="/sign-in"
-            className="w-full block text-center px-6 py-4 bg-[#393E46] text-white rounded-xl font-semibold hover:bg-[#929AAB] transition-all duration-300"
+            className="w-full block text-center px-6 py-4 bg-[#4682A9] text-white rounded-xl font-semibold hover:bg-[#749BC2] transition-all duration-300"
           >
             Sign In
           </Link>
 
           {/* Footer Links */}
           <div className="mt-8 text-center">
-            <p className="text-sm text-[#929AAB]">
+            <p className="text-sm text-[#749BC2]">
               By signing up, you agree to our{" "}
-              <Link href="/terms" className="text-[#393E46] hover:underline">
+              <Link href="/terms" className="text-[#4682A9] hover:underline">
                 Terms
               </Link>{" "}
               and{" "}
-              <Link href="/privacy" className="text-[#393E46] hover:underline">
+              <Link href="/privacy" className="text-[#4682A9] hover:underline">
                 Privacy Policy
               </Link>
             </p>
           </div>
 
-          <div className="mt-6 pt-6 border-t border-[#EEEEEE] text-center md:hidden">
+          <div className="mt-6 pt-6 border-t border-[#91C8E4] text-center md:hidden">
             <Link
               href="/"
-              className="inline-flex items-center text-sm text-[#929AAB] hover:text-[#393E46] transition-colors"
+              className="inline-flex items-center text-sm text-[#749BC2] hover:text-[#4682A9] transition-colors"
             >
               <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -201,10 +201,10 @@ function SignUpContent() {
 export default function SignUpPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-[#F7F7F7]">
+      <div className="min-h-screen flex items-center justify-center bg-[#F6F4EB]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#393E46] mx-auto"></div>
-          <p className="mt-4 text-[#929AAB]">Loading...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4682A9] mx-auto"></div>
+          <p className="mt-4 text-[#749BC2]">Loading...</p>
         </div>
       </div>
     }>

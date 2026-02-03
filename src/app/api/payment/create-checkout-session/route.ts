@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { productId, productTitle, productImage, amount } = body;
+    const { productId, productTitle, productImage, amount, paymentType = "full" } = body;
 
     if (!productId || !productTitle || !amount) {
       return NextResponse.json(
@@ -23,6 +23,11 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    const isPenalty = paymentType === "penalty";
+    const description = isPenalty 
+      ? `Penalty payment (50%) for declining ${productTitle}`
+      : `Auction winner payment for ${productTitle}`;
 
     // Create Stripe checkout session
     const checkoutSession = await stripe.checkout.sessions.create({
@@ -32,9 +37,9 @@ export async function POST(request: NextRequest) {
           price_data: {
             currency: "npr", // Nepali Rupees
             product_data: {
-              name: productTitle,
+              name: isPenalty ? `Penalty - ${productTitle}` : productTitle,
               images: productImage ? [productImage] : [],
-              description: `Auction winner payment for ${productTitle}`,
+              description,
             },
             unit_amount: Math.round(amount * 100), // Convert to paisa (smallest currency unit)
           },
@@ -42,12 +47,13 @@ export async function POST(request: NextRequest) {
         },
       ],
       mode: "payment",
-      success_url: `${process.env.NEXTAUTH_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}&product_id=${productId}`,
+      success_url: `${process.env.NEXTAUTH_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}&product_id=${productId}&payment_type=${paymentType}`,
       cancel_url: `${process.env.NEXTAUTH_URL}/payment/${productId}?canceled=true`,
       customer_email: session.user.email,
       metadata: {
         productId,
         buyerEmail: session.user.email,
+        paymentType,
       },
     });
 

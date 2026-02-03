@@ -1,18 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/admin'
-import connectToDatabase from '@/lib/mongodb'
+import { pool } from '@/lib/database'
 import { User } from '@/lib/models'
 
 // GET - Fetch all users
 export async function GET() {
   try {
-    console.log('🔍 Admin Users API - GET request')
+    console.log('Admin Users API - GET request')
     
     // Check if user is admin
     try {
       await requireAdmin()
     } catch (adminError) {
-      console.log('❌ Admin check failed:', adminError)
+      console.log('Admin check failed:', adminError)
       return NextResponse.json(
         { error: 'Admin access required' },
         { status: 403 }
@@ -20,19 +20,19 @@ export async function GET() {
     }
     
     // Connect to database
-    await connectToDatabase()
     
     // Fetch all users, sorted by creation date (newest first)
-    const users = await User.find({})
-      .select('_id googleId email name role createdAt updatedAt')
-      .sort({ createdAt: -1 })
-      .lean()
+    const allUsers = await User.find({})
+    const users = allUsers.sort((a, b) => 
+      new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()
+    )
+      
     
-    console.log(`✅ Found ${users.length} users`)
+    console.log(`Found ${users.length} users`)
     
     return NextResponse.json(users)
   } catch (error) {
-    console.error('❌ Error fetching users:', error)
+    console.error('Error fetching users:', error)
     return NextResponse.json(
       { error: 'Failed to fetch users' },
       { status: 500 }
@@ -43,7 +43,7 @@ export async function GET() {
 // PUT - Update user role
 export async function PUT(request: NextRequest) {
   try {
-    console.log('🔄 Admin Users API - PUT request')
+    console.log('Admin Users API - PUT request')
     
     // Check if user is admin
     await requireAdmin()
@@ -65,7 +65,6 @@ export async function PUT(request: NextRequest) {
     }
     
     // Connect to database
-    await connectToDatabase()
     
     // Find the user
     const user = await User.findById(userId)
@@ -88,22 +87,29 @@ export async function PUT(request: NextRequest) {
     }
     
     // Update user role
-    user.role = role
-    await user.save()
+    await User.findByIdAndUpdate(userId, { role })
+    const updatedUser = await User.findById(userId)
     
-    console.log(`✅ Updated user ${user.email} role to ${role}`)
+    if (!updatedUser) {
+      return NextResponse.json(
+        { error: 'Failed to update user' },
+        { status: 500 }
+      )
+    }
+    
+    console.log(`Updated user ${updatedUser.email} role to ${role}`)
     
     return NextResponse.json({
       message: `User role updated to ${role} successfully`,
       user: {
-        _id: user._id,
-        email: user.email,
-        role: user.role,
-        googleId: user.googleId
+        _id: updatedUser._id,
+        email: updatedUser.email,
+        role: updatedUser.role,
+        googleId: updatedUser.googleId
       }
     })
   } catch (error) {
-    console.error('❌ Error updating user role:', error)
+    console.error('Error updating user role:', error)
     return NextResponse.json(
       { error: 'Failed to update user role' },
       { status: 500 }
@@ -114,7 +120,7 @@ export async function PUT(request: NextRequest) {
 // POST - Add new admin user (create placeholder)
 export async function POST(request: NextRequest) {
   try {
-    console.log('➕ Admin Users API - POST request')
+    console.log('Admin Users API - POST request')
     
     // Check if user is admin
     await requireAdmin()
@@ -138,7 +144,6 @@ export async function POST(request: NextRequest) {
     }
     
     // Connect to database
-    await connectToDatabase()
     
     // Check if user already exists
     const existingUser = await User.findOne({ email })
@@ -151,8 +156,12 @@ export async function POST(request: NextRequest) {
         )
       }
       
+      const userId = existingUser._id || existingUser.id || ''
+      if (!userId) {
+        return NextResponse.json({ error: 'User ID not found' }, { status: 500 })
+      }
+      await User.findByIdAndUpdate(userId, { role: 'ADMIN' })
       existingUser.role = 'ADMIN'
-      await existingUser.save()
       
       return NextResponse.json({
         message: `Existing user ${email} has been promoted to admin`,
@@ -167,14 +176,14 @@ export async function POST(request: NextRequest) {
       role: 'ADMIN'
     })
     
-    console.log(`✅ Created placeholder admin user: ${email}`)
+    console.log(`Created placeholder admin user: ${email}`)
     
     return NextResponse.json({
       message: `Admin user ${email} added successfully. They will have admin access when they sign in with Google.`,
       user: newUser
     })
   } catch (error) {
-    console.error('❌ Error adding admin user:', error)
+    console.error('Error adding admin user:', error)
     return NextResponse.json(
       { error: 'Failed to add admin user' },
       { status: 500 }
@@ -185,7 +194,7 @@ export async function POST(request: NextRequest) {
 // DELETE - Remove user
 export async function DELETE(request: NextRequest) {
   try {
-    console.log('🗑️ Admin Users API - DELETE request')
+    console.log('Admin Users API - DELETE request')
     
     // Check if user is admin
     await requireAdmin()
@@ -201,7 +210,6 @@ export async function DELETE(request: NextRequest) {
     }
     
     // Connect to database
-    await connectToDatabase()
     
     // Find the user
     const user = await User.findById(userId)
@@ -226,13 +234,13 @@ export async function DELETE(request: NextRequest) {
     // Remove from database
     await User.findByIdAndDelete(userId)
     
-    console.log(`✅ Deleted user from database: ${user.email}`)
+    console.log(`Deleted user from database: ${user.email}`)
     
     return NextResponse.json({
       message: `User ${user.email} has been removed successfully`
     })
   } catch (error) {
-    console.error('❌ Error removing user:', error)
+    console.error('Error removing user:', error)
     return NextResponse.json(
       { error: 'Failed to remove user' },
       { status: 500 }

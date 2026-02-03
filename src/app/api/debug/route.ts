@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import connectToDatabase from '@/lib/mongodb'
+import { pool } from '@/lib/database'
 import { CarouselImage } from '@/lib/models'
 
 export async function GET() {
@@ -14,9 +14,8 @@ export async function GET() {
     let carouselCount = 0
     
     try {
-      await connectToDatabase()
-      const count = await CarouselImage.countDocuments()
-      carouselCount = count
+      const images = await CarouselImage.find({})
+      carouselCount = images.length
       dbStatus = 'connected'
     } catch (error) {
       dbStatus = 'failed'
