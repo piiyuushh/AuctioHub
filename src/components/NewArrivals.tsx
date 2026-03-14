@@ -14,6 +14,21 @@ interface NewArrivalProduct {
   isActive: boolean;
 }
 
+const isNewArrivalProductArray = (value: unknown): value is NewArrivalProduct[] => {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (item) =>
+        item &&
+        typeof item === "object" &&
+        typeof item.title === "string" &&
+        typeof item.description === "string" &&
+        typeof item.imageUrl === "string" &&
+        typeof item.link === "string"
+    )
+  );
+};
+
 const NewArrival = () => {
   const [products, setProducts] = useState<NewArrivalProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,27 +74,47 @@ const NewArrival = () => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/new-arrivals');
-        
-        if (response.ok) {
-          const data = await response.json();
-          
-          // If no products in database, show default products
-          if (data.length === 0) {
-            setProducts(getDefaultProducts());
-          } else {
-            setProducts(data);
-          }
-          setError(null);
-        } else {
-          console.error('Failed to fetch new arrival products');
-          setError('Failed to load products');
-          // Fallback to static data if API fails
-          setProducts(getDefaultProducts());
+        const response = await fetch("/api/new-arrivals", { cache: "no-store" });
+        let payload: unknown = null;
+
+        try {
+          payload = await response.json();
+        } catch {
+          payload = null;
         }
+
+        if (!response.ok) {
+          const serverMessage =
+            payload &&
+            typeof payload === "object" &&
+            "error" in payload &&
+            typeof payload.error === "string"
+              ? payload.error
+              : `HTTP ${response.status}`;
+
+          console.warn("New arrivals API unavailable:", serverMessage);
+          setError("Failed to load products");
+          setProducts(getDefaultProducts());
+          return;
+        }
+
+        if (!isNewArrivalProductArray(payload)) {
+          console.warn("Unexpected new arrivals payload format. Falling back to defaults.");
+          setError("Failed to load products");
+          setProducts(getDefaultProducts());
+          return;
+        }
+
+        // If no products in database, show default products
+        if (payload.length === 0) {
+          setProducts(getDefaultProducts());
+        } else {
+          setProducts(payload);
+        }
+        setError(null);
       } catch (error) {
-        console.error('Error fetching new arrival products:', error);
-        setError('Failed to load products');
+        console.warn("Error fetching new arrival products:", error);
+        setError("Failed to load products");
         // Fallback to static data if API fails
         setProducts(getDefaultProducts());
       } finally {
