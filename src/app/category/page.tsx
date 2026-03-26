@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -62,6 +62,9 @@ interface Product {
   auctionStatus?: string;
 }
 
+const MAX_IMAGE_SIZE_BYTES = 8 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"];
+
 export default function CategoryPage() {
   const { data: session } = useSession();
   const router = useRouter();
@@ -78,12 +81,14 @@ export default function CategoryPage() {
     title: "",
     description: "",
     imageUrl: "",
+    cloudinary_public_id: "",
     hasAuction: false,
     auctionDurationMinutes: 30,
     startingBid: 0,
   });
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const uploadAbortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     fetchProducts();
@@ -98,6 +103,14 @@ export default function CategoryPage() {
       setMyProducts((prev) => [...prev]);
     }, 1000);
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (uploadAbortControllerRef.current) {
+        uploadAbortControllerRef.current.abort();
+      }
+    };
   }, []);
 
   const fetchProducts = async () => {
@@ -131,11 +144,24 @@ export default function CategoryPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      setMessage({ type: "error", text: "Image size must be less than 5MB" });
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      setMessage({ type: "error", text: "Invalid file type. Use JPG, PNG, WebP, or GIF." });
+      e.target.value = "";
       return;
     }
 
+    if (file.size > MAX_IMAGE_SIZE_BYTES) {
+      setMessage({ type: "error", text: "Image size must be less than 8MB" });
+      e.target.value = "";
+      return;
+    }
+
+    if (uploadAbortControllerRef.current) {
+      uploadAbortControllerRef.current.abort();
+    }
+
+    const controller = new AbortController();
+    uploadAbortControllerRef.current = controller;
     setUploading(true);
     const formDataObj = new FormData();
     formDataObj.append("file", file);
@@ -144,21 +170,31 @@ export default function CategoryPage() {
       const response = await fetch("/api/upload", {
         method: "POST",
         body: formDataObj,
+        signal: controller.signal,
       });
 
       if (response.ok) {
         const data = await response.json();
-        setFormData((prev) => ({ ...prev, imageUrl: data.url }));
+        setFormData((prev) => ({
+          ...prev,
+          imageUrl: data.url,
+          cloudinary_public_id: data.public_id || "",
+        }));
         setMessage({ type: "success", text: "Image uploaded successfully!" });
       } else {
         const errorData = await response.json();
         setMessage({ type: "error", text: errorData.error || "Failed to upload image" });
       }
     } catch (error) {
+      if ((error as DOMException).name === "AbortError") {
+        return;
+      }
       console.error("Upload error:", error);
       setMessage({ type: "error", text: "Error uploading image" });
     } finally {
+      uploadAbortControllerRef.current = null;
       setUploading(false);
+      e.target.value = "";
     }
   };
 
@@ -205,6 +241,7 @@ export default function CategoryPage() {
           title: "",
           description: "",
           imageUrl: "",
+          cloudinary_public_id: "",
           hasAuction: false,
           auctionDurationMinutes: 30,
           startingBid: 0,
@@ -346,12 +383,17 @@ export default function CategoryPage() {
   };
 
   const closeForm = () => {
+    if (uploadAbortControllerRef.current) {
+      uploadAbortControllerRef.current.abort();
+      uploadAbortControllerRef.current = null;
+    }
     setShowAddForm(false);
     setEditingProduct(null);
     setFormData({
       title: "",
       description: "",
       imageUrl: "",
+      cloudinary_public_id: "",
       hasAuction: false,
       auctionDurationMinutes: 30,
       startingBid: 0,
@@ -752,7 +794,9 @@ export default function CategoryPage() {
                     />
                     <button
                       type="button"
-                      onClick={() => setFormData((prev) => ({ ...prev, imageUrl: "" }))}
+                      onClick={() =>
+                        setFormData((prev) => ({ ...prev, imageUrl: "", cloudinary_public_id: "" }))
+                      }
                       className="absolute top-2 right-2 p-2 bg-red-600 text-white rounded-full hover:bg-red-700"
                     >
                       <XMarkIcon className="h-5 w-5" />
@@ -762,7 +806,7 @@ export default function CategoryPage() {
                   <label className="flex flex-col items-center justify-center w-full aspect-video border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-black transition-colors">
                     <PhotoIcon className="h-16 w-16 text-gray-400 mb-4" />
                     <p className="text-sm text-gray-600 mb-2">Click to upload image</p>
-                    <p className="text-xs text-gray-500">PNG, JPG up to 5MB</p>
+                    <p className="text-xs text-gray-500">PNG, JPG, WebP, GIF</p>
                     <input
                       type="file"
                       accept="image/*"

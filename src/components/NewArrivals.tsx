@@ -37,7 +37,7 @@ const NewArrival = () => {
   // Default fallback products
   const getDefaultProducts = (): NewArrivalProduct[] => [
     {
-      title: "PlayStation 5",
+      title: "Gaming",
       description: "Black and White version of the PS5 coming out on sale.",
       imageUrl: "/assets/new arrivals/ps5.png",
       link: "/category",
@@ -45,7 +45,7 @@ const NewArrival = () => {
       isActive: true,
     },
     {
-      title: "Women's Collections",
+      title: "Luxury Clothing",
       description: "Featured women collections that give you another vibe.",
       imageUrl: "/assets/new arrivals/womens collection.png",
       link: "/category",
@@ -53,7 +53,7 @@ const NewArrival = () => {
       isActive: true,
     },
     {
-      title: "Speakers",
+      title: "Electronics",
       description: "Amazon wireless speakers",
       imageUrl: "/assets/new arrivals/speaker.png",
       link: "/category",
@@ -61,7 +61,7 @@ const NewArrival = () => {
       isActive: true,
     },
     {
-      title: "Sneakers",
+      title: "Wearables",
       description: "GUCCI INTENSE OUD EDP",
       imageUrl: "/assets/new arrivals/shoes.png",
       link: "/category",
@@ -132,7 +132,7 @@ const NewArrival = () => {
           <span className="text-red-500 font-semibold uppercase tracking-wider flex items-center gap-2">
             <span className="w-2 h-6 bg-red-500 rounded"></span> Featured
           </span>
-          <h2 className="text-3xl font-bold mt-2">New Arrivals</h2>
+          <h2 className="text-3xl font-bold mt-2">Categories</h2>
         </div>
         <div className="flex justify-center items-center py-16">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500"></div>
@@ -149,7 +149,7 @@ const NewArrival = () => {
         <span className="text-red-500 font-semibold uppercase tracking-wider flex items-center gap-2">
           <span className="w-2 h-6 bg-red-500 rounded"></span> Featured
         </span>
-        <h2 className="text-3xl font-bold mt-2">New Arrivals</h2>
+        <h2 className="text-3xl font-bold mt-2">Categories</h2>
       </div>
 
       {error && (
