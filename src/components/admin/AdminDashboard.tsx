@@ -173,7 +173,7 @@ export default function AdminDashboard() {
             </div>
             <button
               onClick={navigateToHome}
-              className="w-full sm:w-auto px-6 py-3 bg-white text-[#4682A9] rounded-xl font-semibold shadow-lg hover:bg-gray-50 transition-all duration-300 flex items-center justify-center gap-2"
+              className="w-full sm:w-auto px-6 py-3 bg-[#F6F4EB] border-2 border-[#4682A9] text-[#1f3f56] rounded-2xl font-semibold shadow-lg hover:bg-[#ece9dc] transition-all duration-300 flex items-center justify-center gap-2"
             >
               <FiHome className="text-lg" />
               Back to Home
@@ -287,12 +287,12 @@ export default function AdminDashboard() {
                     key={tab.id}
                     onClick={() => tab.available && setActiveTab(tab.id)}
                     disabled={!tab.available}
-                    className={`relative flex-shrink-0 px-6 py-4 text-sm font-semibold rounded-xl mx-1 transition-all duration-300 min-w-max ${
+                    className={`relative flex-shrink-0 px-6 py-4 text-sm font-semibold rounded-2xl border-2 mx-1 transition-all duration-300 min-w-max ${
                       isActive
-                        ? 'bg-[#4682A9] text-white shadow-md'
+                        ? 'bg-[#F6F4EB] border-[#4682A9] text-[#1f3f56] shadow-md'
                         : tab.available
-                        ? 'text-gray-600 hover:bg-gray-100 hover:text-black'
-                        : 'text-gray-400 cursor-not-allowed opacity-50'
+                        ? 'bg-[#F6F4EB] border-[#7aa2bf] text-gray-700 hover:bg-[#ece9dc] hover:text-[#1f3f56]'
+                        : 'bg-[#f8f8f8] border-gray-200 text-gray-400 cursor-not-allowed opacity-50'
                     }`}
                   >
                     <div className="flex items-center space-x-2">

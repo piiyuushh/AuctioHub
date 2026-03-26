@@ -380,9 +380,9 @@ export default function NewArrivalsManager() {
           disabled={actionLoading || products.length >= 4}
           className={`${
             products.length >= 4 
-              ? 'bg-gray-400 cursor-not-allowed' 
-              : 'bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400'
-          } text-white px-4 py-2 rounded-lg font-medium transition-colors`}
+              ? 'bg-[#f0eee5] border-[#9db6c8] text-[#6b7f8f] cursor-not-allowed' 
+              : 'bg-[#F6F4EB] border-[#4682A9] text-[#1f3f56] hover:bg-[#ece9dc]'
+          } border-2 px-4 py-2 rounded-2xl font-medium transition-colors`}
           title={products.length >= 4 ? 'Maximum 4 products allowed' : ''}
         >
           Add New Product {products.length >= 4 && '(Max 4)'}
@@ -544,7 +544,7 @@ export default function NewArrivalsManager() {
               <button
                 type="submit"
                 disabled={actionLoading || uploading}
-                className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                className="bg-[#F6F4EB] border-2 border-[#4682A9] hover:bg-[#ece9dc] disabled:opacity-50 text-[#1f3f56] px-6 py-2 rounded-2xl font-medium transition-colors"
               >
                 {uploading ? 'Uploading...' : actionLoading ? 'Saving...' : editingProduct ? 'Update Product' : 'Add Product'}
               </button>
@@ -555,7 +555,7 @@ export default function NewArrivalsManager() {
                   resetForm()
                 }}
                 disabled={actionLoading}
-                className="bg-gray-500 hover:bg-gray-600 disabled:bg-gray-400 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                className="bg-[#F6F4EB] border-2 border-[#4682A9] hover:bg-[#ece9dc] disabled:opacity-50 text-[#1f3f56] px-6 py-2 rounded-2xl font-medium transition-colors"
               >
                 Cancel
               </button>
@@ -615,7 +615,7 @@ export default function NewArrivalsManager() {
                         <button
                           onClick={() => handleMoveUp(product, index)}
                           disabled={index === 0 || actionLoading}
-                          className="p-2 text-gray-500 hover:text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="p-2 border border-[#4682A9] bg-[#F6F4EB] text-[#1f3f56] rounded-xl hover:bg-[#ece9dc] disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Move up"
                         >
                           ↑
@@ -623,7 +623,7 @@ export default function NewArrivalsManager() {
                         <button
                           onClick={() => handleMoveDown(product, index)}
                           disabled={index === products.length - 1 || actionLoading}
-                          className="p-2 text-gray-500 hover:text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="p-2 border border-[#4682A9] bg-[#F6F4EB] text-[#1f3f56] rounded-xl hover:bg-[#ece9dc] disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Move down"
                         >
                           ↓
@@ -633,10 +633,10 @@ export default function NewArrivalsManager() {
                         <button
                           onClick={() => handleToggleActive(product)}
                           disabled={actionLoading}
-                          className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                          className={`px-3 py-1 rounded-xl text-sm font-medium transition-colors border ${
                             product.isActive
-                              ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
-                              : 'bg-green-100 text-green-800 hover:bg-green-200'
+                              ? 'border-[#4682A9] bg-[#F6F4EB] text-[#1f3f56] hover:bg-[#ece9dc]'
+                              : 'border-[#4682A9] bg-[#F6F4EB] text-[#1f3f56] hover:bg-[#ece9dc]'
                           }`}
                         >
                           {product.isActive ? 'Deactivate' : 'Activate'}
@@ -646,7 +646,7 @@ export default function NewArrivalsManager() {
                         <button
                           onClick={() => handleEdit(product)}
                           disabled={actionLoading}
-                          className="bg-blue-100 text-blue-800 hover:bg-blue-200 px-3 py-1 rounded-lg text-sm font-medium transition-colors"
+                          className="bg-[#F6F4EB] border border-[#4682A9] text-[#1f3f56] hover:bg-[#ece9dc] px-3 py-1 rounded-xl text-sm font-medium transition-colors"
                         >
                           Edit
                         </button>
@@ -655,7 +655,7 @@ export default function NewArrivalsManager() {
                         <button
                           onClick={() => handleDelete(product)}
                           disabled={actionLoading}
-                          className="bg-red-100 text-red-800 hover:bg-red-200 px-3 py-1 rounded-lg text-sm font-medium transition-colors"
+                          className="bg-red-600 border border-red-700 text-white hover:bg-red-700 px-3 py-1 rounded-xl text-sm font-medium transition-colors"
                         >
                           Delete
                         </button>

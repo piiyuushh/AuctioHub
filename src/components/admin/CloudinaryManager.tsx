@@ -116,7 +116,7 @@ export default function CloudinaryManager() {
             <button
               onClick={extractPublicIdFromUrl}
               disabled={!imageUrl}
-              className="px-3 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 disabled:opacity-50"
+              className="px-3 py-2 bg-[#F6F4EB] border-2 border-[#4682A9] text-[#1f3f56] rounded-2xl hover:bg-[#ece9dc] disabled:opacity-50"
             >
               Extract ID
             </button>
@@ -142,7 +142,7 @@ export default function CloudinaryManager() {
           <button
             onClick={deleteImage}
             disabled={isDeleting || (!publicId && !imageUrl)}
-            className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 disabled:opacity-50 flex items-center"
+            className="px-4 py-2 bg-red-600 border-2 border-red-700 text-white rounded-2xl hover:bg-red-700 disabled:opacity-50 flex items-center"
           >
             {isDeleting && (
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -156,7 +156,7 @@ export default function CloudinaryManager() {
               setImageUrl('')
               setMessage(null)
             }}
-            className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
+            className="px-4 py-2 bg-[#F6F4EB] border-2 border-[#4682A9] text-[#1f3f56] rounded-2xl hover:bg-[#ece9dc]"
           >
             Clear
           </button>

@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import {
   ShoppingBagIcon,
   PlusIcon,
-  PencilIcon,
   TrashIcon,
   XMarkIcon,
   PhotoIcon,

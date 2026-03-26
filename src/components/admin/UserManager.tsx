@@ -224,7 +224,7 @@ export default function UserManager() {
           <h2 className="text-xl font-semibold">User Management</h2>
           <button
             onClick={() => setShowAddForm(!showAddForm)}
-            className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 disabled:opacity-50"
+            className="px-4 py-2 bg-[#F6F4EB] border-2 border-[#4682A9] text-[#1f3f56] rounded-2xl hover:bg-[#ece9dc] disabled:opacity-50"
             disabled={actionLoading}
           >
             {showAddForm ? 'Cancel' : 'Add Admin'}
@@ -266,7 +266,7 @@ export default function UserManager() {
                 <button
                   onClick={addAdminUser}
                   disabled={actionLoading}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50"
+                  className="px-4 py-2 bg-[#F6F4EB] border-2 border-[#4682A9] text-[#1f3f56] rounded-2xl hover:bg-[#ece9dc] disabled:opacity-50"
                 >
                   {actionLoading ? 'Adding...' : 'Grant Admin Access'}
                 </button>
@@ -276,7 +276,7 @@ export default function UserManager() {
                     setNewAdminEmail('')
                   }}
                   disabled={actionLoading}
-                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+                  className="px-4 py-2 bg-[#F6F4EB] border-2 border-[#4682A9] text-[#1f3f56] rounded-2xl hover:bg-[#ece9dc]"
                 >
                   Cancel
                 </button>
@@ -338,7 +338,7 @@ export default function UserManager() {
                                   <button
                                     onClick={() => updateUserRole(user._id, 'ADMIN', user.role, user.email)}
                                     disabled={actionLoading}
-                                    className="px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 disabled:opacity-50"
+                                    className="px-3 py-1 border border-[#4682A9] bg-[#F6F4EB] text-[#1f3f56] text-xs rounded-xl hover:bg-[#ece9dc] disabled:opacity-50"
                                   >
                                     Make Admin
                                   </button>
@@ -346,7 +346,7 @@ export default function UserManager() {
                                   <button
                                     onClick={() => updateUserRole(user._id, 'USER', user.role, user.email)}
                                     disabled={actionLoading}
-                                    className="px-3 py-1 bg-gray-500 text-white text-xs rounded hover:bg-gray-600 disabled:opacity-50"
+                                    className="px-3 py-1 border border-[#4682A9] bg-[#F6F4EB] text-[#1f3f56] text-xs rounded-xl hover:bg-[#ece9dc] disabled:opacity-50"
                                   >
                                     Remove Admin
                                   </button>
@@ -354,7 +354,7 @@ export default function UserManager() {
                                 <button
                                   onClick={() => removeUser(user._id, user.email, user.role)}
                                   disabled={actionLoading}
-                                  className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 disabled:opacity-50"
+                                  className="px-3 py-1 border border-red-700 bg-red-600 text-white text-xs rounded-xl hover:bg-red-700 disabled:opacity-50"
                                 >
                                   Remove User
                                 </button>
