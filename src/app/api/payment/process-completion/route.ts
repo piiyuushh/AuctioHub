@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { pool } from "@/lib/database";
-import { Product } from "@/lib/models";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { AuctionHistory, Product } from "@/lib/models";
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await request.json();
     const { productId, paymentType } = body;
 
@@ -14,18 +20,45 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!["full", "penalty"].includes(paymentType)) {
+      return NextResponse.json(
+        { error: "Invalid payment type" },
+        { status: 400 }
+      );
+    }
+
+    const product = await Product.findById(productId);
+    if (!product) {
+      return NextResponse.json(
+        { error: "Product not found" },
+        { status: 404 }
+      );
+    }
+
+    // Idempotency guard for repeated success-page or webhook retries.
+    const alreadyRecorded = await AuctionHistory.existsByProductAndPayment(
+      productId,
+      paymentType
+    );
+
+    if (!alreadyRecorded) {
+      await AuctionHistory.create({
+        productId,
+        productTitle: product.title,
+        productImageUrl: product.imageUrl,
+        conductedAt: new Date(),
+        auctionEndTime: product.auctionEndTime || null,
+        winnerUserId: product.highestBidder || session.user.id || null,
+        winnerEmail: product.highestBidderEmail || session.user.email || null,
+        winningBidAmount: product.currentBid || 0,
+        paymentType,
+        outcomeStatus: paymentType === "penalty" ? "penalty_paid" : "completed",
+      });
+    }
+
 
     // If penalty was paid, reactivate the product for re-listing
     if (paymentType === "penalty") {
-      const product = await Product.findById(productId);
-      
-      if (!product) {
-        return NextResponse.json(
-          { error: "Product not found" },
-          { status: 404 }
-        );
-      }
-
       // Reset auction status to allow seller to re-list
       await Product.findByIdAndUpdate(productId, {
         auctionStatus: 'none',
@@ -45,15 +78,6 @@ export async function POST(request: NextRequest) {
 
     // For full payment, mark as sold
     if (paymentType === "full") {
-      const product = await Product.findById(productId);
-      
-      if (!product) {
-        return NextResponse.json(
-          { error: "Product not found" },
-          { status: 404 }
-        );
-      }
-
       await Product.findByIdAndUpdate(productId, {
         auctionStatus: 'ended',
         hasAuction: false,
@@ -70,10 +94,11 @@ export async function POST(request: NextRequest) {
       success: true,
       message: "Payment processed",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Process payment error:", error);
+    const message = error instanceof Error ? error.message : "Failed to process payment completion"
     return NextResponse.json(
-      { error: error.message || "Failed to process payment completion" },
+      { error: message },
       { status: 500 }
     );
   }

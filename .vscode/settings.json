@@ -1,4 +1,5 @@
 {
     "window.density.editorTabHeight": "default",
-    "workbench.editor.showTabs": "multiple"
+    "workbench.editor.showTabs": "multiple",
+    "editor.bracketPairColorization.enabled": true
 }

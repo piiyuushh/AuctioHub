@@ -1,5 +1,4 @@
 import { pool } from './database'
-import { QueryResult } from 'pg'
 
 // TypeScript Interfaces
 export interface IUser {
@@ -95,6 +94,23 @@ export interface IChatMessage {
   updatedAt?: Date
 }
 
+export interface IAuctionHistory {
+  _id?: string
+  id?: string
+  productId: string
+  productTitle: string
+  productImageUrl?: string | null
+  conductedAt?: Date
+  auctionEndTime?: Date | null
+  winnerUserId?: string | null
+  winnerEmail?: string | null
+  winningBidAmount: number
+  paymentType: 'full' | 'penalty'
+  outcomeStatus: 'completed' | 'penalty_paid' | 'relisted'
+  createdAt?: Date
+  updatedAt?: Date
+}
+
 // Helper: Map DB row to User interface
 function mapToUser(row: any): IUser {
   return {
@@ -130,6 +146,25 @@ function mapToProduct(row: any): IProduct {
     highestBidderEmail: row.highest_bidder_email,
     totalBids: row.total_bids,
     auctionStatus: row.auction_status,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  }
+}
+
+function mapToAuctionHistory(row: any): IAuctionHistory {
+  return {
+    _id: row.id,
+    id: row.id,
+    productId: row.product_id,
+    productTitle: row.product_title,
+    productImageUrl: row.product_image_url,
+    conductedAt: row.conducted_at,
+    auctionEndTime: row.auction_end_time,
+    winnerUserId: row.winner_user_id,
+    winnerEmail: row.winner_email,
+    winningBidAmount: parseFloat(row.winning_bid_amount),
+    paymentType: row.payment_type,
+    outcomeStatus: row.outcome_status,
     createdAt: row.created_at,
     updatedAt: row.updated_at
   }
@@ -1121,6 +1156,220 @@ export const Bid = {
 
   lean() { return this },
   sort() { return this }
+}
+
+// ==================== AUCTION HISTORY MODEL ====================
+let auctionHistoryBootstrapPromise: Promise<void> | null = null
+
+async function ensureAuctionHistoryTable(): Promise<void> {
+  if (!auctionHistoryBootstrapPromise) {
+    auctionHistoryBootstrapPromise = (async () => {
+      await pool.query(`
+        CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+        CREATE TABLE IF NOT EXISTS auction_history (
+          id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+          product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+          product_title VARCHAR(255) NOT NULL,
+          product_image_url TEXT,
+          conducted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          auction_end_time TIMESTAMP,
+          winner_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+          winner_email VARCHAR(255),
+          winning_bid_amount DECIMAL(10, 2) NOT NULL DEFAULT 0,
+          payment_type VARCHAR(20) NOT NULL CHECK (payment_type IN ('full', 'penalty')),
+          outcome_status VARCHAR(30) NOT NULL DEFAULT 'completed' CHECK (outcome_status IN ('completed', 'penalty_paid', 'relisted')),
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE (product_id, payment_type)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_auction_history_conducted_at ON auction_history(conducted_at);
+        CREATE INDEX IF NOT EXISTS idx_auction_history_winner_user_id ON auction_history(winner_user_id);
+        CREATE INDEX IF NOT EXISTS idx_auction_history_product_id ON auction_history(product_id);
+      `)
+    })().catch((error) => {
+      auctionHistoryBootstrapPromise = null
+      throw error
+    })
+  }
+
+  await auctionHistoryBootstrapPromise
+}
+
+export const AuctionHistory = {
+  async create(data: Partial<IAuctionHistory>): Promise<IAuctionHistory> {
+    await ensureAuctionHistoryTable()
+
+    const result = await pool.query(
+      `INSERT INTO auction_history (
+        product_id,
+        product_title,
+        product_image_url,
+        conducted_at,
+        auction_end_time,
+        winner_user_id,
+        winner_email,
+        winning_bid_amount,
+        payment_type,
+        outcome_status
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      ON CONFLICT (product_id, payment_type) DO NOTHING
+      RETURNING *`,
+      [
+        data.productId,
+        data.productTitle,
+        data.productImageUrl || null,
+        data.conductedAt || new Date(),
+        data.auctionEndTime || null,
+        data.winnerUserId || null,
+        data.winnerEmail || null,
+        data.winningBidAmount || 0,
+        data.paymentType,
+        data.outcomeStatus || 'completed'
+      ]
+    )
+
+    if (result.rows.length === 0) {
+      const existing = await this.findOne({ productId: data.productId, paymentType: data.paymentType })
+      if (!existing) {
+        throw new Error('Failed to insert auction history row')
+      }
+      return existing
+    }
+
+    return mapToAuctionHistory(result.rows[0])
+  },
+
+  async find(query: any = {}, options: { limit?: number } = {}): Promise<IAuctionHistory[]> {
+    await ensureAuctionHistoryTable()
+
+    let sql = 'SELECT * FROM auction_history WHERE 1=1'
+    const params: any[] = []
+    let paramCount = 1
+
+    if (query.productId) {
+      sql += ` AND product_id = $${paramCount}`
+      params.push(query.productId)
+      paramCount++
+    }
+    if (query.winnerUserId) {
+      sql += ` AND winner_user_id = $${paramCount}`
+      params.push(query.winnerUserId)
+      paramCount++
+    }
+    if (query.paymentType) {
+      sql += ` AND payment_type = $${paramCount}`
+      params.push(query.paymentType)
+      paramCount++
+    }
+    if (query.outcomeStatus) {
+      sql += ` AND outcome_status = $${paramCount}`
+      params.push(query.outcomeStatus)
+      paramCount++
+    }
+
+    sql += ' ORDER BY conducted_at DESC, created_at DESC'
+
+    if (options.limit) {
+      sql += ` LIMIT $${paramCount}`
+      params.push(options.limit)
+    }
+
+    const result = await pool.query(sql, params)
+    return result.rows.map(mapToAuctionHistory)
+  },
+
+  async findOne(query: any = {}): Promise<IAuctionHistory | null> {
+    const rows = await this.find(query, { limit: 1 })
+    return rows.length > 0 ? rows[0] : null
+  },
+
+  async countDocuments(query: any = {}): Promise<number> {
+    await ensureAuctionHistoryTable()
+
+    let sql = 'SELECT COUNT(*) FROM auction_history WHERE 1=1'
+    const params: any[] = []
+    let paramCount = 1
+
+    if (query.winnerUserId) {
+      sql += ` AND winner_user_id = $${paramCount}`
+      params.push(query.winnerUserId)
+      paramCount++
+    }
+    if (query.paymentType) {
+      sql += ` AND payment_type = $${paramCount}`
+      params.push(query.paymentType)
+      paramCount++
+    }
+
+    const result = await pool.query(sql, params)
+    return parseInt(result.rows[0].count)
+  },
+
+  async existsByProductAndPayment(productId: string, paymentType: 'full' | 'penalty'): Promise<boolean> {
+    await ensureAuctionHistoryTable()
+
+    const result = await pool.query(
+      'SELECT 1 FROM auction_history WHERE product_id = $1 AND payment_type = $2 LIMIT 1',
+      [productId, paymentType]
+    )
+    return result.rows.length > 0
+  },
+
+  async getAdminSummary(limit = 5): Promise<{
+    totalAuctionsConducted: number
+    fullPaymentCount: number
+    penaltyCount: number
+    auctionsThisMonth: number
+    totalFullPaymentValue: number
+    latest: IAuctionHistory[]
+  }> {
+    await ensureAuctionHistoryTable()
+
+    const summaryResult = await pool.query(`
+      SELECT
+        COUNT(*)::int AS total_auctions_conducted,
+        COUNT(*) FILTER (WHERE payment_type = 'full')::int AS full_payment_count,
+        COUNT(*) FILTER (WHERE payment_type = 'penalty')::int AS penalty_count,
+        COUNT(*) FILTER (
+          WHERE DATE_TRUNC('month', conducted_at) = DATE_TRUNC('month', NOW())
+        )::int AS auctions_this_month,
+        COALESCE(SUM(winning_bid_amount) FILTER (WHERE payment_type = 'full'), 0)::numeric AS total_full_payment_value
+      FROM auction_history
+    `)
+
+    const latest = await this.find({}, { limit })
+    const row = summaryResult.rows[0]
+
+    return {
+      totalAuctionsConducted: row.total_auctions_conducted || 0,
+      fullPaymentCount: row.full_payment_count || 0,
+      penaltyCount: row.penalty_count || 0,
+      auctionsThisMonth: row.auctions_this_month || 0,
+      totalFullPaymentValue: parseFloat(row.total_full_payment_value || 0),
+      latest
+    }
+  },
+
+  async getUserWonStats(userId: string): Promise<{ auctionsWon: number; totalSpent: number }> {
+    await ensureAuctionHistoryTable()
+
+    const result = await pool.query(
+      `SELECT
+        COUNT(*) FILTER (WHERE payment_type = 'full')::int AS auctions_won,
+        COALESCE(SUM(winning_bid_amount) FILTER (WHERE payment_type = 'full'), 0)::numeric AS total_spent
+       FROM auction_history
+       WHERE winner_user_id = $1`,
+      [userId]
+    )
+
+    const row = result.rows[0]
+    return {
+      auctionsWon: row.auctions_won || 0,
+      totalSpent: parseFloat(row.total_spent || 0)
+    }
+  }
 }
 
 // ==================== CHAT MESSAGE MODEL ====================
