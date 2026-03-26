@@ -8,6 +8,9 @@ export default function SignInCallbackPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const [progress, setProgress] = useState(0);
+  
+  // DB-driven check: user is first-time login if isFirstAppLogin is true
+  const isFirstLogin = (session?.user as any)?.isFirstAppLogin ?? false;
 
   useEffect(() => {
     if (status === "authenticated") {
@@ -154,7 +157,7 @@ export default function SignInCallbackPage() {
                 Successfully authenticated
               </p>
               <h2 className="font-serif text-4xl tracking-tight text-black leading-tight">
-                Welcome<br />back.
+                {isFirstLogin ? "Welcome" : "Welcome"}<br />{isFirstLogin ? "." : "back."}
               </h2>
               {session?.user?.name && (
                 <p className="font-mono text-sm text-neutral-500 mt-1">

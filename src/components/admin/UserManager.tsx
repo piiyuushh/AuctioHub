@@ -2,6 +2,15 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 
 interface User {
   _id: string
@@ -13,6 +22,13 @@ interface User {
   updatedAt: string
 }
 
+interface ConfirmAction {
+  type: 'remove-admin' | 'remove-user' | 'make-admin' | null
+  userId?: string
+  email?: string
+  userRole?: 'USER' | 'ADMIN'
+}
+
 export default function UserManager() {
   const { data: session } = useSession()
   const [users, setUsers] = useState<User[]>([])
@@ -21,6 +37,7 @@ export default function UserManager() {
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [newAdminEmail, setNewAdminEmail] = useState('')
   const [showAddForm, setShowAddForm] = useState(false)
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmAction>({ type: null })
 
   // Get current user's email for comparison
   const currentUserEmail = session?.user?.email
@@ -54,15 +71,27 @@ export default function UserManager() {
   }
 
   const updateUserRole = async (userId: string, newRole: 'USER' | 'ADMIN', currentRole: string, userEmail: string) => {
-    // Special confirmation for demoting admin to user
+    // Open dialog instead of using window.confirm
     if (currentRole === 'ADMIN' && newRole === 'USER') {
-      const confirmMessage = `WARNING: You are about to remove admin privileges from "${userEmail}".\n\nThis will:\n- Revoke their admin access\n- Remove them from the admin dashboard\n- Convert them to a regular user\n\nNote: If this is the last admin user, the demotion will be blocked to ensure system access.\n\nAre you sure you want to proceed?`
-      
-      if (!window.confirm(confirmMessage)) {
-        return
-      }
+      setConfirmDialog({
+        type: 'remove-admin',
+        userId,
+        email: userEmail,
+        userRole: currentRole as 'USER' | 'ADMIN'
+      })
+      return
     }
 
+    // If promoting to admin, show confirmation dialog
+    setConfirmDialog({
+      type: 'make-admin',
+      userId,
+      email: userEmail,
+      userRole: currentRole as 'USER' | 'ADMIN'
+    })
+  }
+
+  const confirmUpdateUserRole = async (userId: string, newRole: 'USER' | 'ADMIN') => {
     try {
       setActionLoading(true)
       const response = await fetch('/api/admin/users', {
@@ -84,6 +113,7 @@ export default function UserManager() {
       setMessage({ type: 'error', text: 'Error updating user role' })
     } finally {
       setActionLoading(false)
+      setConfirmDialog({ type: null })
     }
   }
 
@@ -127,16 +157,16 @@ export default function UserManager() {
   }
 
   const removeUser = async (userId: string, userEmail: string, userRole: string) => {
-    // Special warning for admin users
-    const isAdmin = userRole === 'ADMIN'
-    const confirmMessage = isAdmin 
-      ? `WARNING: You are about to remove an ADMIN user "${userEmail}" from the system!\n\nThis will:\n- Delete them from the database\n- Revoke all admin privileges\n\nNote: If this is the last admin user, the removal will be blocked to ensure system access.\n\nThis action cannot be undone. Are you absolutely sure?`
-      : `Are you sure you want to permanently remove user "${userEmail}" from the system?\n\nThis will delete them from the database.\n\nThis action cannot be undone.`
-    
-    if (!window.confirm(confirmMessage)) {
-      return
-    }
+    // Open confirmation dialog instead of using window.confirm
+    setConfirmDialog({
+      type: 'remove-user',
+      userId,
+      email: userEmail,
+      userRole: userRole as 'USER' | 'ADMIN'
+    })
+  }
 
+  const confirmRemoveUser = async (userId: string) => {
     try {
       setActionLoading(true)
       const response = await fetch(`/api/admin/users?userId=${userId}`, {
@@ -160,6 +190,7 @@ export default function UserManager() {
       setMessage({ type: 'error', text: 'Error removing user' })
     } finally {
       setActionLoading(false)
+      setConfirmDialog({ type: null })
     }
   }
 
@@ -340,6 +371,146 @@ export default function UserManager() {
           )}
         </div>
       </div>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={confirmDialog.type !== null} onOpenChange={(open) => {
+        if (!open) setConfirmDialog({ type: null })
+      }}>
+        <DialogContent className="sm:max-w-[425px]">
+          {confirmDialog.type === 'remove-user' && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-red-600">Remove User</DialogTitle>
+                <DialogDescription className="mt-2">
+                  {confirmDialog.userRole === 'ADMIN' ? (
+                    <div className="space-y-3">
+                      <p className="font-semibold text-red-600">⚠️ Warning: Admin User</p>
+                      <p>You are about to remove an administrator account from the system.</p>
+                      <div className="bg-red-50 border border-red-200 p-3 rounded text-sm space-y-2">
+                        <p><strong>Email:</strong> {confirmDialog.email}</p>
+                        <p><strong>Role:</strong> {confirmDialog.userRole}</p>
+                        <p className="mt-3 text-red-700">This action will:</p>
+                        <ul className="list-disc list-inside space-y-1 text-red-700">
+                          <li>Delete them from the database</li>
+                          <li>Revoke all admin privileges</li>
+                          <li>Invalidate their login sessions</li>
+                        </ul>
+                      </div>
+                      <p className="text-xs text-gray-600">Note: If this is the last admin user, the removal will be blocked.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <p>You are about to permanently remove a user from the system.</p>
+                      <div className="bg-orange-50 border border-orange-200 p-3 rounded text-sm">
+                        <p><strong>Email:</strong> {confirmDialog.email}</p>
+                        <p className="mt-2 text-orange-700">This action will:</p>
+                        <ul className="list-disc list-inside text-orange-700">
+                          <li>Delete them from the database</li>
+                          <li>Invalidate their login sessions</li>
+                        </ul>
+                      </div>
+                      <p className="text-xs text-gray-600">This action cannot be undone.</p>
+                    </div>
+                  )}
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setConfirmDialog({ type: null })}
+                  disabled={actionLoading}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => confirmRemoveUser(confirmDialog.userId!)}
+                  disabled={actionLoading}
+                >
+                  {actionLoading ? 'Removing...' : 'Remove User'}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+
+          {confirmDialog.type === 'remove-admin' && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-orange-600">Remove Admin Privileges</DialogTitle>
+                <DialogDescription className="mt-2">
+                  <div className="space-y-3">
+                    <p>You are about to remove admin privileges from this user.</p>
+                    <div className="bg-orange-50 border border-orange-200 p-3 rounded text-sm space-y-2">
+                      <p><strong>Email:</strong> {confirmDialog.email}</p>
+                      <p className="mt-2 text-orange-700">This action will:</p>
+                      <ul className="list-disc list-inside space-y-1 text-orange-700">
+                        <li>Revoke their admin access</li>
+                        <li>Remove them from the admin dashboard</li>
+                        <li>Convert them to a regular user</li>
+                      </ul>
+                    </div>
+                    <p className="text-xs text-gray-600">Note: If this is the last admin user, this action will be blocked.</p>
+                  </div>
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setConfirmDialog({ type: null })}
+                  disabled={actionLoading}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => confirmUpdateUserRole(confirmDialog.userId!, 'USER')}
+                  disabled={actionLoading}
+                >
+                  {actionLoading ? 'Removing...' : 'Remove Admin'}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+
+          {confirmDialog.type === 'make-admin' && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-blue-600">Grant Admin Privileges</DialogTitle>
+                <DialogDescription className="mt-2">
+                  <div className="space-y-3">
+                    <p>You are about to grant admin privileges to this user.</p>
+                    <div className="bg-blue-50 border border-blue-200 p-3 rounded text-sm space-y-2">
+                      <p><strong>Email:</strong> {confirmDialog.email}</p>
+                      <p className="mt-2 text-blue-700">This action will:</p>
+                      <ul className="list-disc list-inside space-y-1 text-blue-700">
+                        <li>Grant full admin access</li>
+                        <li>Allow them to manage users and settings</li>
+                        <li>Provide access to the admin dashboard</li>
+                      </ul>
+                    </div>
+                    <p className="text-xs text-gray-600">Make sure you trust this user before granting admin privileges.</p>
+                  </div>
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setConfirmDialog({ type: null })}
+                  disabled={actionLoading}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => confirmUpdateUserRole(confirmDialog.userId!, 'ADMIN')}
+                  disabled={actionLoading}
+                >
+                  {actionLoading ? 'Granting...' : 'Grant Admin'}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
