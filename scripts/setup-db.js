@@ -5,11 +5,19 @@ const path = require('path');
 // Load environment variables
 require('dotenv').config({ path: path.join(__dirname, '..', '.env.local') });
 
+function getSslConfig(connectionString) {
+  try {
+    const hostname = new URL(connectionString).hostname;
+    const isLocalHost = hostname === 'localhost' || hostname === '127.0.0.1';
+    return isLocalHost ? false : { rejectUnauthorized: false };
+  } catch {
+    return { rejectUnauthorized: false };
+  }
+}
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
+  ssl: getSslConfig(process.env.DATABASE_URL)
 });
 
 async function setupDatabase() {

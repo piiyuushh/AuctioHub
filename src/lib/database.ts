@@ -16,16 +16,26 @@ if (!DATABASE_URL) {
 // Create PostgreSQL connection pool
 let pool: Pool
 
+function getSslConfig() {
+  try {
+    const hostname = new URL(DATABASE_URL).hostname
+    const isLocalHost = hostname === 'localhost' || hostname === '127.0.0.1'
+    return isLocalHost ? false : { rejectUnauthorized: false }
+  } catch {
+    return { rejectUnauthorized: false }
+  }
+}
+
 if (process.env.NODE_ENV === 'production') {
   pool = new Pool({
     connectionString: DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
+    ssl: getSslConfig()
   })
 } else {
   if (!global.pgPool) {
     global.pgPool = new Pool({
       connectionString: DATABASE_URL,
-      ssl: { rejectUnauthorized: false }
+      ssl: getSslConfig()
     })
   }
   pool = global.pgPool
