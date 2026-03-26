@@ -6,13 +6,26 @@ import Image from 'next/image'
 import CarouselManager from './CarouselManager'
 import UserManager from './UserManager'
 import NewArrivalsManager from './NewArrivalsManager'
-import { FiHome, FiUsers, FiImage, FiPackage, FiSettings, FiActivity, FiTrendingUp, FiShoppingBag } from 'react-icons/fi'
+import { FiHome, FiUsers, FiImage, FiPackage, FiSettings, FiActivity, FiTrendingUp, FiShoppingBag, FiBarChart2 } from 'react-icons/fi'
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('carousel')
   const [stats, setStats] = useState({
     totalUsers: 0,
     carouselImages: 0,
+    totalAuctionsConducted: 0,
+    fullPaymentCount: 0,
+    penaltyCount: 0,
+    auctionsThisMonth: 0,
+    totalFullPaymentValue: 0,
+    latestAuctions: [] as Array<{
+      id: string
+      productTitle: string
+      winnerEmail: string | null
+      paymentType: 'full' | 'penalty'
+      winningBidAmount: number
+      conductedAt: string
+    }>,
     loading: true
   })
   const router = useRouter()
@@ -21,19 +34,28 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Fetch total users count
-        const usersResponse = await fetch('/api/admin/users')
+        const [usersResponse, carouselResponse, auctionStatsResponse] = await Promise.all([
+          fetch('/api/admin/users'),
+          fetch('/api/carousel'),
+          fetch('/api/admin/auction-stats')
+        ])
+
         const users = await usersResponse.json()
-        const totalUserCount = Array.isArray(users) ? users.length : 0
-        
-        // Fetch carousel images count
-        const carouselResponse = await fetch('/api/carousel')
         const carouselData = await carouselResponse.json()
+        const auctionStats = auctionStatsResponse.ok ? await auctionStatsResponse.json() : null
+
+        const totalUserCount = Array.isArray(users) ? users.length : 0
         const imageCount = Array.isArray(carouselData) ? carouselData.length : 0
         
         setStats({
           totalUsers: totalUserCount,
           carouselImages: imageCount,
+          totalAuctionsConducted: auctionStats?.totalAuctionsConducted || 0,
+          fullPaymentCount: auctionStats?.fullPaymentCount || 0,
+          penaltyCount: auctionStats?.penaltyCount || 0,
+          auctionsThisMonth: auctionStats?.auctionsThisMonth || 0,
+          totalFullPaymentValue: auctionStats?.totalFullPaymentValue || 0,
+          latestAuctions: auctionStats?.latestAuctions || [],
           loading: false
         })
       } catch (error) {
@@ -41,6 +63,12 @@ export default function AdminDashboard() {
         setStats({
           totalUsers: 0,
           carouselImages: 0,
+          totalAuctionsConducted: 0,
+          fullPaymentCount: 0,
+          penaltyCount: 0,
+          auctionsThisMonth: 0,
+          totalFullPaymentValue: 0,
+          latestAuctions: [],
           loading: false
         })
       }
@@ -61,24 +89,60 @@ export default function AdminDashboard() {
     { id: 'settings', label: 'Settings', icon: FiSettings, available: false, color: 'gray' },
   ]
 
-  const statsCards = [
+  const primaryCards = [
     {
       title: 'Total Users',
       value: stats.totalUsers,
       loading: stats.loading,
       icon: FiUsers,
-      bgColor: 'bg-blue-100',
-      textColor: 'text-blue-600',
-      description: 'Registered members'
+      iconBg: 'bg-blue-100',
+      iconText: 'text-blue-700',
+      hint: 'Registered members'
     },
+    {
+      title: 'Auctions Conducted',
+      value: stats.totalAuctionsConducted,
+      loading: stats.loading,
+      icon: FiShoppingBag,
+      iconBg: 'bg-green-100',
+      iconText: 'text-green-700',
+      hint: 'All-time payment events'
+    },
+    {
+      title: 'Full Payment Value',
+      value: `NPR ${stats.totalFullPaymentValue.toFixed(2)}`,
+      loading: stats.loading,
+      icon: FiTrendingUp,
+      iconBg: 'bg-cyan-100',
+      iconText: 'text-cyan-700',
+      hint: 'Revenue from completed full payments'
+    }
+  ]
+
+  const secondaryCards = [
     {
       title: 'Carousel Images',
       value: stats.carouselImages,
-      loading: stats.loading,
       icon: FiImage,
-      bgColor: 'bg-purple-100',
-      textColor: 'text-purple-600',
-      description: 'Active banners'
+      color: 'text-purple-700',
+    },
+    {
+      title: 'Full Payments',
+      value: stats.fullPaymentCount,
+      icon: FiTrendingUp,
+      color: 'text-emerald-700',
+    },
+    {
+      title: 'Penalty Payments',
+      value: stats.penaltyCount,
+      icon: FiActivity,
+      color: 'text-amber-700',
+    },
+    {
+      title: 'This Month',
+      value: stats.auctionsThisMonth,
+      icon: FiBarChart2,
+      color: 'text-indigo-700',
     }
   ]
   
@@ -120,39 +184,95 @@ export default function AdminDashboard() {
 
       {/* Stats Grid */}
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          {statsCards.map((card, index) => {
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-5">
+          {primaryCards.map((card, index) => {
             const Icon = card.icon
             return (
               <div
                 key={index}
-                className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-200 p-6"
+                className="bg-white rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 border border-gray-200 p-6"
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-600 mb-2">{card.title}</p>
-                    <div className="flex items-baseline gap-2">
-                      {card.loading ? (
-                        <div className="w-10 h-10 border-4 border-gray-200 border-t-[#4682A9] rounded-full animate-spin"></div>
-                      ) : (
-                        <>
-                          <span className="text-4xl font-bold text-black">
-                            {card.value}
-                          </span>
-                          <span className={`text-sm font-medium ${card.textColor}`}>
-                            {card.description}
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  <div className={`${card.bgColor} p-4 rounded-xl`}>
-                    <Icon className={`text-2xl ${card.textColor}`} />
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide">{card.title}</p>
+                  <div className={`${card.iconBg} p-3 rounded-xl`}>
+                    <Icon className={`text-xl ${card.iconText}`} />
                   </div>
                 </div>
+                {card.loading ? (
+                  <div className="h-10 w-24 bg-gray-200 rounded animate-pulse"></div>
+                ) : (
+                  <>
+                    <p className="text-4xl font-bold text-gray-900 leading-tight">{card.value}</p>
+                    <p className="text-sm text-gray-500 mt-2">{card.hint}</p>
+                  </>
+                )}
               </div>
             )
           })}
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-5 mb-8">
+          <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Operational Metrics</p>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {secondaryCards.map((metric, index) => {
+              const Icon = metric.icon
+              return (
+                <div key={index} className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{metric.title}</p>
+                    <Icon className={`text-base ${metric.color}`} />
+                  </div>
+                  {stats.loading ? (
+                    <div className="h-7 w-12 bg-gray-200 rounded animate-pulse"></div>
+                  ) : (
+                    <p className="text-2xl font-bold text-gray-900">{metric.value}</p>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-bold text-black">Latest Conducted Auctions</h3>
+            <span className="text-sm text-gray-500">From payment completion history</span>
+          </div>
+          {stats.latestAuctions.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-gray-300 px-4 py-6 text-center">
+              <p className="text-gray-600 text-sm font-medium">No auction history available yet.</p>
+              <p className="text-xs text-gray-500 mt-1">Entries will appear here as payment completions are processed.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left border-b border-gray-200">
+                    <th className="py-2 pr-3">Product</th>
+                    <th className="py-2 pr-3">Winner</th>
+                    <th className="py-2 pr-3">Type</th>
+                    <th className="py-2 pr-3">Amount</th>
+                    <th className="py-2">Conducted</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.latestAuctions.map((auction) => (
+                    <tr key={auction.id} className="border-b border-gray-100">
+                      <td className="py-3 pr-3 font-medium text-gray-800">{auction.productTitle}</td>
+                      <td className="py-3 pr-3 text-gray-600">{auction.winnerEmail || 'N/A'}</td>
+                      <td className="py-3 pr-3">
+                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${auction.paymentType === 'full' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                          {auction.paymentType}
+                        </span>
+                      </td>
+                      <td className="py-3 pr-3 text-gray-800">NPR {Number(auction.winningBidAmount || 0).toFixed(2)}</td>
+                      <td className="py-3 text-gray-600">{new Date(auction.conductedAt).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         {/* Navigation Tabs */}
