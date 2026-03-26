@@ -11,7 +11,7 @@ interface UserStats {
   activeBids: number;
   watchlist: number;
   activeListings: number;
-  auctionsWon: number;
+  auctionsWon: number
   totalSpent: string;
   successRate: string;
   avgBidTime: string;
