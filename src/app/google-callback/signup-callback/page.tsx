@@ -8,6 +8,9 @@ export default function SignUpCallbackPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const [progress, setProgress] = useState(0);
+  
+  // DB-driven check: user is first-time login if isFirstAppLogin is true
+  const isFirstLogin = (session?.user as any)?.isFirstAppLogin ?? false;
 
   useEffect(() => {
     if (status === "authenticated") {
@@ -155,10 +158,10 @@ export default function SignUpCallbackPage() {
             {/* Text */}
             <div className="text-center space-y-2">
               <p className="text-[10px] font-medium tracking-[0.18em] uppercase text-neutral-400">
-                Registration complete
+                {isFirstLogin ? "Registration complete" : "Account verified"}
               </p>
               <h2 className="font-serif text-4xl tracking-tight text-black leading-tight">
-                Welcome to<br />the Auction.
+                {isFirstLogin ? "Welcome to" : "Welcome back to"}<br />{isFirstLogin ? "the Auction." : "the Auction."}
               </h2>
               {session?.user?.name && (
                 <p className="font-mono text-sm text-neutral-500 mt-1">

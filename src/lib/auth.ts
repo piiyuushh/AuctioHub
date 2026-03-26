@@ -30,11 +30,15 @@ export const authOptions: NextAuthOptions = {
           const adminEmails = adminEmailsRaw.map(e => e.replace(/^["']|["']$/g, ''));
           const isInitialAdmin = adminEmails.includes(email || '');
           
-          // Check if user exists
+          // Check if user exists in database (DB-driven welcome detection)
           const existingUser = await User.findOne({ email });
+          let isFirstAppLogin = false;
           
           if (existingUser) {
-            // Update existing user
+            // User exists - this is NOT their first login
+            isFirstAppLogin = false;
+            
+            // Update existing user with latest OAuth info
             const userId = existingUser._id || existingUser.id || '';
             if (userId) {
               await User.findByIdAndUpdate(userId, {
@@ -42,10 +46,12 @@ export const authOptions: NextAuthOptions = {
                 name: user.name || '',
                 image: user.image || '',
               });
-              console.log(`User signed in: ${email} (Role: ${existingUser.role})`);
+              console.log(`User signed in: ${email} (Role: ${existingUser.role}, FirstLogin: ${isFirstAppLogin})`);
             }
           } else {
-            // Create new user
+            // Create new user - this IS their first login
+            isFirstAppLogin = true;
+            
             const newUser = await User.create({
               email: email || '',
               googleId,
@@ -53,8 +59,11 @@ export const authOptions: NextAuthOptions = {
               image: user.image || '',
               role: isInitialAdmin ? 'ADMIN' : 'USER',
             });
-            console.log(`New user created: ${email} (Role: ${newUser.role})`);
+            console.log(`New user created: ${email} (Role: ${newUser.role}, FirstLogin: ${isFirstAppLogin})`);
           }
+          
+          // Store isFirstAppLogin in user object for JWT callback
+          (user as any).isFirstAppLogin = isFirstAppLogin;
           
           return true;
         } catch (error: any) {
@@ -106,12 +115,29 @@ export const authOptions: NextAuthOptions = {
             token.id = (dbUser._id || dbUser.id || '').toString();
             token.googleId = dbUser.googleId;
             token.role = dbUser.role;
+            // Preserve the isFirstAppLogin flag from signIn callback
+            token.isFirstAppLogin = (user as any).isFirstAppLogin ?? false;
           } else {
             // User might have just been created, set defaults
             token.role = 'USER';
+            token.isFirstAppLogin = (user as any).isFirstAppLogin ?? false;
           }
         } catch (error) {
           console.error("Error fetching user in JWT callback:", error);
+        }
+      } else if (token.id) {
+        // On subsequent token refreshes, check if user still exists (DELETED-USER GUARD)
+        try {
+          const dbUser = await User.findById(token.id as string);
+          if (!dbUser) {
+            // User has been deleted - invalidate the token
+            console.warn(`Session invalidated for deleted user: ${token.id}`);
+            return {}; // Return empty token to invalidate session
+          }
+          // User still exists, update token with current role
+          token.role = dbUser.role;
+        } catch (error) {
+          console.error("Error checking user existence in JWT callback:", error);
         }
       }
       return token;
@@ -121,6 +147,8 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string;
         session.user.googleId = token.googleId as string;
         session.user.role = token.role as string;
+        // Pass isFirstAppLogin flag to session for frontend use
+        (session.user as any).isFirstAppLogin = (token.isFirstAppLogin as boolean) ?? false;
       }
       return session;
     },

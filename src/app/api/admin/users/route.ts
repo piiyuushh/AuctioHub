@@ -234,10 +234,18 @@ export async function DELETE(request: NextRequest) {
     // Remove from database
     await User.findByIdAndDelete(userId)
     
-    console.log(`Deleted user from database: ${user.email}`)
+    console.log(`Deleted user from database: ${user.email} (Role: ${user.role})`)
     
     return NextResponse.json({
-      message: `User ${user.email} has been removed successfully`
+      success: true,
+      message: 'User removed from application',
+      note: 'Google account not deleted (by design)',
+      details: {
+        email: user.email,
+        removedRole: user.role,
+        timestamp: new Date().toISOString(),
+        googleAccountStatus: 'External identity unchanged - user can sign back in and will be treated as new'
+      }
     })
   } catch (error) {
     console.error('Error removing user:', error)
