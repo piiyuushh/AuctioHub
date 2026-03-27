@@ -10,6 +10,7 @@ import {
   ArrowLeftIcon,
 } from "@heroicons/react/24/outline";
 import { Header } from "@/components/Header";
+import { AlertDialog } from "@/components/ui/AlertDialog";
 
 interface Product {
   _id: string;
@@ -50,6 +51,7 @@ export default function AuctionSessionPage() {
   const [timeRemaining, setTimeRemaining] = useState("");
   const [showWinner, setShowWinner] = useState(false);
   const [bidIncrement, setBidIncrement] = useState("10");
+  const [alertDialog, setAlertDialog] = useState({ open: false, title: '', message: '', variant: 'default' as 'default' | 'destructive' | 'success' });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -151,7 +153,7 @@ export default function AuctionSessionPage() {
     if (!product) return;
     const increment = Number(bidIncrement);
     if (!Number.isFinite(increment) || increment <= 0) {
-      alert("Please enter a valid amount greater than 0");
+      setAlertDialog({ open: true, title: 'Invalid Amount', message: 'Please enter a valid amount greater than 0', variant: 'default' });
       return;
     }
     const bidAmount =
@@ -167,11 +169,11 @@ export default function AuctionSessionPage() {
         await fetchProduct();
       } else {
         const data = await response.json();
-        alert(data.error || "Failed to place bid");
+        setAlertDialog({ open: true, title: 'Bid Failed', message: data.error || "Failed to place bid", variant: 'destructive' });
       }
     } catch (error) {
       console.error("Error placing bid:", error);
-      alert("Error placing bid");
+      setAlertDialog({ open: true, title: 'Error', message: "Error placing bid", variant: 'destructive' });
     }
   };
 
@@ -517,6 +519,15 @@ export default function AuctionSessionPage() {
           </div>
         </div>
       </div>
+
+      <AlertDialog
+        open={alertDialog.open}
+        onOpenChange={(open) => setAlertDialog({ ...alertDialog, open })}
+        title={alertDialog.title}
+        description={alertDialog.message}
+        confirmText="Close"
+        variant={alertDialog.variant as 'default' | 'destructive' | 'success'}
+      />
     </div>
   );
 }

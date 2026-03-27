@@ -13,6 +13,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { Header } from "@/components/Header";
 import Footer from "@/components/Footer";
+import { AlertDialog } from "@/components/ui/AlertDialog";
 
 interface Product {
   _id: string;
@@ -38,6 +39,7 @@ export default function PaymentPage() {
   const [paymentType, setPaymentType] = useState<PaymentType>(null);
   const [processing, setProcessing] = useState(false);
   const [showPenaltyConfirm, setShowPenaltyConfirm] = useState(false);
+  const [alertDialog, setAlertDialog] = useState({ open: false, title: '', message: '', variant: 'default' as 'default' | 'destructive' | 'success' });
 
   useEffect(() => {
     if (!session) {
@@ -73,7 +75,7 @@ export default function PaymentPage() {
 
   const handlePayment = async (type: "full" | "penalty") => {
     if (!selectedMethod) {
-      alert("Please select a payment method");
+      setAlertDialog({ open: true, title: 'Payment Method Required', message: 'Please select a payment method', variant: 'default' });
       return;
     }
 
@@ -112,7 +114,7 @@ export default function PaymentPage() {
           // Redirect to Stripe checkout
           window.location.href = data.url;
         } else {
-          alert(data.error || "Failed to create checkout session");
+          setAlertDialog({ open: true, title: 'Payment Error', message: data.error || "Failed to create checkout session", variant: 'destructive' });
           setProcessing(false);
         }
       } else if (selectedMethod === "mobile") {
@@ -122,13 +124,15 @@ export default function PaymentPage() {
           const message = type === "full"
             ? "Mobile payment successful! Thank you for your purchase."
             : "Penalty payment successful. The seller will be compensated.";
-          alert(message);
-          router.push("/");
+          setAlertDialog({ open: true, title: 'Payment Successful', message: message, variant: 'success' });
+          setTimeout(() => {
+            router.push("/");
+          }, 1500);
         }, 2000);
       }
     } catch (error) {
       console.error("Payment error:", error);
-      alert("An error occurred while processing payment");
+      setAlertDialog({ open: true, title: 'Error', message: "An error occurred while processing payment", variant: 'destructive' });
       setProcessing(false);
     }
   };
@@ -387,6 +391,15 @@ export default function PaymentPage() {
           </div>
         </div>
       </div>
+
+      <AlertDialog
+        open={alertDialog.open}
+        onOpenChange={(open) => setAlertDialog({ ...alertDialog, open })}
+        title={alertDialog.title}
+        description={alertDialog.message}
+        confirmText="Close"
+        variant={alertDialog.variant as 'default' | 'destructive' | 'success'}
+      />
 
       <Footer />
     </div>

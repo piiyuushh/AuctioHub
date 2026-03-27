@@ -311,7 +311,7 @@ export default function CarouselManager() {
           <h2 className="text-xl font-semibold">Carousel Management</h2>
           <button
             onClick={() => setShowAddForm(!showAddForm)}
-            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+            className="px-4 py-2 bg-[#F6F4EB] border-2 border-[#4682A9] text-[#1f3f56] rounded-2xl hover:bg-[#ece9dc]"
           >
             {showAddForm ? 'Cancel' : 'Add New Image'}
           </button>
@@ -393,7 +393,7 @@ export default function CarouselManager() {
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                        className="bg-[#F6F4EB] border-2 border-[#4682A9] text-[#1f3f56] px-4 py-2 rounded-2xl hover:bg-[#ece9dc] transition-colors"
                       >
                         Choose Image File
                       </button>
@@ -471,7 +471,7 @@ export default function CarouselManager() {
                   (uploadMethod === 'file' && !selectedFile) || 
                   (uploadMethod === 'url' && !newImage.url)
                 }
-                className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 disabled:opacity-50 flex items-center"
+                className="px-4 py-2 bg-[#F6F4EB] border-2 border-[#4682A9] text-[#1f3f56] rounded-2xl hover:bg-[#ece9dc] disabled:opacity-50 flex items-center"
               >
                 {(actionLoading || uploading) && (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -487,7 +487,7 @@ export default function CarouselManager() {
                   setError('')
                   if (fileInputRef.current) fileInputRef.current.value = ''
                 }}
-                className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
+                className="px-4 py-2 bg-[#F6F4EB] border-2 border-[#4682A9] text-[#1f3f56] rounded-2xl hover:bg-[#ece9dc]"
               >
                 Cancel
               </button>
@@ -554,7 +554,7 @@ export default function CarouselManager() {
                           <button
                             onClick={() => moveImage(image, 'up')}
                             disabled={index === 0 || actionLoading}
-                            className="px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+                            className="px-2 py-1 text-xs border border-[#4682A9] bg-[#F6F4EB] rounded-xl hover:bg-[#ece9dc] disabled:opacity-50"
                             title="Move up"
                           >
                             ↑
@@ -562,7 +562,7 @@ export default function CarouselManager() {
                           <button
                             onClick={() => moveImage(image, 'down')}
                             disabled={index === images.filter(img => img.isActive).length - 1 || actionLoading}
-                            className="px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+                            className="px-2 py-1 text-xs border border-[#4682A9] bg-[#F6F4EB] rounded-xl hover:bg-[#ece9dc] disabled:opacity-50"
                             title="Move down"
                           >
                             ↓
@@ -572,7 +572,7 @@ export default function CarouselManager() {
                         <button
                           onClick={() => toggleActive(image)}
                           disabled={actionLoading}
-                          className="px-3 py-1 text-xs bg-yellow-500 text-white rounded hover:bg-yellow-600 disabled:opacity-50"
+                          className="px-3 py-1 text-xs border border-[#4682A9] bg-[#F6F4EB] text-[#1f3f56] rounded-xl hover:bg-[#ece9dc] disabled:opacity-50"
                         >
                           Deactivate
                         </button>
@@ -580,7 +580,7 @@ export default function CarouselManager() {
                         <button
                           onClick={() => deleteImage(getImageId(image))}
                           disabled={actionLoading}
-                          className="px-3 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50"
+                          className="px-3 py-1 text-xs border border-red-700 bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-50"
                         >
                           Delete
                         </button>
@@ -646,7 +646,7 @@ export default function CarouselManager() {
                         <button
                           onClick={() => toggleActive(image)}
                           disabled={actionLoading}
-                          className="px-3 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50"
+                          className="px-3 py-1 text-xs border border-[#4682A9] bg-[#F6F4EB] text-[#1f3f56] rounded-xl hover:bg-[#ece9dc] disabled:opacity-50"
                         >
                           Activate
                         </button>
@@ -654,7 +654,7 @@ export default function CarouselManager() {
                         <button
                           onClick={() => deleteImage(getImageId(image))}
                           disabled={actionLoading}
-                          className="px-3 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50"
+                          className="px-3 py-1 text-xs border border-red-700 bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-50"
                         >
                           Delete
                         </button>

@@ -265,6 +265,45 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+[data-pdf-capture] *,
+[data-pdf-capture] *::before,
+[data-pdf-capture] *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+[data-pdf-capture] {
+  overflow: visible !important;
+  width: 100% !important;
+  display: block !important;
+}
+
+/* Ensure layouts display at full width during capture */
+[data-pdf-capture] main {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  max-width: 100% !important;
+}
+
+[data-pdf-capture] .max-w-7xl {
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+[data-pdf-capture] .grid {
+  width: 100% !important;
+  display: grid !important;
+}
+
+[data-pdf-capture] [class*="gap-"] {
+  gap: inherit !important;
+}
+
+[data-pdf-capture] svg {
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

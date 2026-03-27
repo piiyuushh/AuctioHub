@@ -1,15 +1,21 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import Image from 'next/image'
 import CarouselManager from './CarouselManager'
 import UserManager from './UserManager'
 import NewArrivalsManager from './NewArrivalsManager'
-import { FiHome, FiUsers, FiImage, FiPackage, FiSettings, FiActivity, FiTrendingUp, FiShoppingBag, FiBarChart2 } from 'react-icons/fi'
+import { FiHome, FiUsers, FiImage, FiPackage, FiSettings, FiActivity, FiTrendingUp, FiShoppingBag, FiBarChart2, FiDownload } from 'react-icons/fi'
+import { exportDashboardPdf } from '@/lib/pdf-export'
+import { AlertDialog } from '@/components/ui/AlertDialog'
 
 export default function AdminDashboard() {
+  const { data: session } = useSession()
   const [activeTab, setActiveTab] = useState('carousel')
+  const [isExporting, setIsExporting] = useState(false)
+  const [alertDialog, setAlertDialog] = useState({ open: false, message: '' })
   const [stats, setStats] = useState({
     totalUsers: 0,
     carouselImages: 0,
@@ -28,6 +34,7 @@ export default function AdminDashboard() {
     }>,
     loading: true
   })
+  const reportRootRef = useRef<HTMLDivElement | null>(null)
   const router = useRouter()
   
   // Fetch real-time stats
@@ -79,6 +86,38 @@ export default function AdminDashboard() {
   
   const navigateToHome = () => {
     router.push('/')
+  }
+
+  const handleExport = async () => {
+    if (!reportRootRef.current) {
+      return
+    }
+
+    setIsExporting(true)
+
+    try {
+      await exportDashboardPdf({
+        filePrefix: 'admin-report',
+        rootElement: reportRootRef.current,
+        cover: {
+          title: 'Admin Report',
+          subtitle: 'System overview',
+          generatedAt: new Date(),
+          identityLines: [
+            `Admin: ${session?.user?.name || 'Administrator'}`,
+            `Email: ${session?.user?.email || 'N/A'}`,
+            `Scope: Full dashboard`,
+            `Active tab: ${activeTab}`,
+          ],
+        },
+        sections: [{ element: reportRootRef.current }],
+      })
+    } catch (error) {
+      console.error('Admin report export failed:', error)
+      setAlertDialog({ open: true, message: 'Failed to export report. Please try again.' })
+    } finally {
+      setIsExporting(false)
+    }
   }
 
   const tabs = [
@@ -147,7 +186,7 @@ export default function AdminDashboard() {
   ]
   
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div ref={reportRootRef} className="min-h-screen bg-gray-100">
       {/* Header */}
       <div className="bg-[#4682A9] shadow-lg">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -171,19 +210,31 @@ export default function AdminDashboard() {
                 </p>
               </div>
             </div>
-            <button
-              onClick={navigateToHome}
-              className="w-full sm:w-auto px-6 py-3 bg-white text-[#4682A9] rounded-xl font-semibold shadow-lg hover:bg-gray-50 transition-all duration-300 flex items-center justify-center gap-2"
-            >
-              <FiHome className="text-lg" />
-              Back to Home
-            </button>
+            <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={handleExport}
+                disabled={isExporting || stats.loading}
+                className="w-full sm:w-auto px-6 py-3 bg-[#F6F4EB] border-2 border-[#4682A9] text-[#1f3f56] rounded-2xl font-semibold shadow-lg hover:bg-[#ece9dc] transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                <FiDownload className="text-lg" />
+                {isExporting ? 'Exporting...' : 'Export Full Report'}
+              </button>
+
+              <button
+                onClick={navigateToHome}
+                className="w-full sm:w-auto px-6 py-3 bg-[#F6F4EB] border-2 border-[#4682A9] text-[#1f3f56] rounded-2xl font-semibold shadow-lg hover:bg-[#ece9dc] transition-all duration-300 flex items-center justify-center gap-2"
+              >
+                <FiHome className="text-lg" />
+                Back to Home
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Stats Grid */}
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="space-y-0">
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-5">
           {primaryCards.map((card, index) => {
             const Icon = card.icon
@@ -274,11 +325,12 @@ export default function AdminDashboard() {
             </div>
           )}
         </div>
+        </div>
 
         {/* Navigation Tabs */}
         <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-          <div className="border-b border-gray-200 bg-gray-50">
-            <nav className="flex overflow-x-auto scrollbar-hide p-2" aria-label="Tabs">
+          <div className="border-b border-gray-200">
+            <nav className="flex overflow-x-auto scrollbar-hide" aria-label="Tabs">
               {tabs.map((tab) => {
                 const Icon = tab.icon
                 const isActive = activeTab === tab.id
@@ -287,23 +339,21 @@ export default function AdminDashboard() {
                     key={tab.id}
                     onClick={() => tab.available && setActiveTab(tab.id)}
                     disabled={!tab.available}
-                    className={`relative flex-shrink-0 px-6 py-4 text-sm font-semibold rounded-xl mx-1 transition-all duration-300 min-w-max ${
+                    className={`relative flex-shrink-0 px-6 py-4 text-sm font-semibold transition-all duration-300 min-w-max flex items-center space-x-2 border-b-2 ${
                       isActive
-                        ? 'bg-[#4682A9] text-white shadow-md'
+                        ? 'text-[#4682A9] border-b-[#4682A9]'
                         : tab.available
-                        ? 'text-gray-600 hover:bg-gray-100 hover:text-black'
-                        : 'text-gray-400 cursor-not-allowed opacity-50'
+                        ? 'text-gray-600 border-b-transparent hover:text-[#4682A9] hover:bg-gray-50'
+                        : 'text-gray-400 border-b-transparent cursor-not-allowed opacity-50'
                     }`}
                   >
-                    <div className="flex items-center space-x-2">
-                      <Icon className="text-lg" />
-                      <span>{tab.label}</span>
-                      {!tab.available && (
-                        <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">
-                          Soon
-                        </span>
-                      )}
-                    </div>
+                    <Icon className="text-lg" />
+                    <span>{tab.label}</span>
+                    {!tab.available && (
+                      <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full ml-1">
+                        Soon
+                      </span>
+                    )}
                   </button>
                 )
               })}
@@ -398,6 +448,15 @@ export default function AdminDashboard() {
         </div>
       </div>
       
+      <AlertDialog
+        open={alertDialog.open}
+        onOpenChange={(open) => setAlertDialog({ ...alertDialog, open })}
+        title="Error"
+        description={alertDialog.message}
+        confirmText="Close"
+        variant="destructive"
+      />
+
       <style jsx>{`
         .scrollbar-hide::-webkit-scrollbar {
           display: none;

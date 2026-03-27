@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import {
   ShoppingBagIcon,
   PlusIcon,
-  PencilIcon,
   TrashIcon,
   XMarkIcon,
   PhotoIcon,
@@ -404,10 +403,10 @@ export default function CategoryPage() {
     <div className="min-h-screen flex flex-col bg-white">
       <Header />
 
-      <section className="bg-gradient-to-r from-black to-gray-800 text-white py-16">
+      <section className="bg-[#F6F4EB] text-[#4682A9] py-16">
         <div className="container mx-auto px-4 xl:px-8 2xl:px-0 2xl:max-w-[1800px]">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">Auction Marketplace</h1>
-          <p className="text-lg text-gray-300 max-w-2xl">
+          <p className="text-lg text-[#4682A9] max-w-2xl">
             Browse products, join auctions, or list your own items
           </p>
         </div>
@@ -420,8 +419,8 @@ export default function CategoryPage() {
               onClick={() => setActiveTab("buyer")}
               className={`flex items-center gap-2 px-6 py-4 font-semibold transition-all ${
                 activeTab === "buyer"
-                  ? "text-black border-b-2 border-black"
-                  : "text-gray-500 hover:text-black"
+                  ? "text-[#4682A9] border-b-2 border-[#4682A9]"
+                  : "text-gray-500 hover:text-[#4682A9]"
               }`}
             >
               <ShoppingBagIcon className="h-5 w-5" />
@@ -635,7 +634,7 @@ export default function CategoryPage() {
               </div>
               <button
                 onClick={() => setShowAddForm(true)}
-                className="flex items-center gap-2 px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
+                className="flex items-center gap-2 px-6 py-3 bg-[#F6F4EB] text-[#4682A9] border border-[#4682A9] rounded-lg cursor-pointer"
               >
                 <PlusIcon className="h-5 w-5" />
                 Add Product
