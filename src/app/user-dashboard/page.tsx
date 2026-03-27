@@ -5,8 +5,10 @@ import { useSession } from "next-auth/react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useRouter } from "next/navigation";
-import { FaGavel, FaListAlt, FaTrophy, FaChartLine, FaDollarSign, FaClock, FaUserEdit } from "react-icons/fa";
+import { FaGavel, FaListAlt, FaTrophy, FaChartLine, FaDollarSign, FaClock, FaUserEdit, FaFilePdf } from "react-icons/fa";
 import Image from "next/image";
+import { exportDashboardPdf } from "@/lib/pdf-export";
+import { AlertDialog } from "@/components/ui/AlertDialog";
 
 interface DashboardStats {
   activeBids: number
@@ -36,14 +38,17 @@ export default function UserDashboard() {
   const [loadingData, setLoadingData] = useState(true)
   const [dashboardError, setDashboardError] = useState<string | null>(null)
   const [isEditingProfile, setIsEditingProfile] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
   const [savingProfile, setSavingProfile] = useState(false)
   const [profileMessage, setProfileMessage] = useState<string | null>(null)
   const [profileError, setProfileError] = useState<string | null>(null)
+  const [alertDialog, setAlertDialog] = useState({ open: false, title: '', message: '', variant: 'default' as 'default' | 'destructive' | 'success' })
   const [formData, setFormData] = useState({ name: "", image: "" })
   const [isUploadingImage, setIsUploadingImage] = useState(false)
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null)
   const [isDraggingImage, setIsDraggingImage] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const reportRootRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     if (!session?.user?.email) return
@@ -202,6 +207,38 @@ export default function UserDashboard() {
     }
   }
 
+  const handleExport = async () => {
+    if (!reportRootRef.current || !stats) {
+      return
+    }
+
+    setIsExporting(true)
+
+    try {
+      await exportDashboardPdf({
+        filePrefix: "user-report",
+        rootElement: reportRootRef.current,
+        cover: {
+          title: "User Report",
+          subtitle: "Personal activity summary",
+          generatedAt: new Date(),
+          identityLines: [
+            `User: ${user.name}`,
+            `Email: ${user.email || "N/A"}`,
+            `Member since: ${new Date(user.createdAt || Date.now()).toLocaleDateString()}`,
+            `Scope: Full dashboard`,
+          ],
+        },
+        sections: [{ element: reportRootRef.current }],
+      })
+    } catch (error) {
+      console.error("User report export failed:", error)
+      setAlertDialog({ open: true, title: 'Export Failed', message: 'Failed to export report. Please try again.', variant: 'destructive' })
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   if (status === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F7F7F7]">
@@ -264,13 +301,16 @@ export default function UserDashboard() {
       <Header />
       
       <main className="flex-1 w-full xl:px-8 2xl:px-0 2xl:max-w-[1800px] 2xl:mx-auto py-8 px-4">
-        <div className="max-w-7xl mx-auto">
+        <div ref={reportRootRef} className="max-w-7xl mx-auto">
           {/* Page Header */}
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-[#393E46] mb-2">User Dashboard</h1>
-            <p className="text-[#929AAB]">Manage your auctions and track your activity</p>
+          <div className="mb-8 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div>
+              <h1 className="text-4xl font-bold text-[#393E46] mb-2">User Dashboard</h1>
+              <p className="text-[#929AAB]">Manage your auctions and track your activity</p>
+            </div>
           </div>
 
+          <div className="space-y-0">
           {/* User Profile Section */}
           <div className="bg-white rounded-2xl shadow-sm border border-[#EEEEEE] p-8 mb-8">
             <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
@@ -382,6 +422,7 @@ export default function UserDashboard() {
               <h3 className="text-3xl font-bold text-[#393E46] mb-1">{stats.successRate.toFixed(1)}%</h3>
               <p className="text-[#929AAB] text-sm">Success Rate</p>
             </div>
+          </div>
           </div>
 
           {/* Two Column Layout */}
@@ -614,6 +655,15 @@ export default function UserDashboard() {
           </div>
         </div>
       )}
+
+      <AlertDialog
+        open={alertDialog.open}
+        onOpenChange={(open) => setAlertDialog({ ...alertDialog, open })}
+        title={alertDialog.title}
+        description={alertDialog.message}
+        confirmText="Close"
+        variant={alertDialog.variant as 'default' | 'destructive' | 'success'}
+      />
 
       <Footer />
     </div>

@@ -2,17 +2,19 @@
 import { useState } from "react";
 import Link from "next/link";
 import { FaUser, FaEnvelope, FaLock } from "react-icons/fa";
+import { AlertDialog } from "@/components/ui/AlertDialog";
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [alertDialog, setAlertDialog] = useState({ open: false, message: '' });
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
-      alert("Passwords do not match!");
+      setAlertDialog({ open: true, message: 'Passwords do not match!' });
       return;
     }
     console.log("Registering with:", { name, email, password });
@@ -131,6 +133,15 @@ export default function RegisterPage() {
           </p>
         </div>
       </div>
+
+      <AlertDialog
+        open={alertDialog.open}
+        onOpenChange={(open) => setAlertDialog({ ...alertDialog, open })}
+        title="Password Mismatch"
+        description={alertDialog.message}
+        confirmText="Close"
+        variant="default"
+      />
     </div>
   );
 }
