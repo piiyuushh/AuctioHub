@@ -111,6 +111,18 @@ export interface IAuctionHistory {
   updatedAt?: Date
 }
 
+export interface IAuctionParticipantBan {
+  _id?: string
+  id?: string
+  productId: string
+  userId: string
+  userEmail: string
+  bannedByEmail: string
+  reason?: string | null
+  createdAt?: Date
+  updatedAt?: Date
+}
+
 // Helper: Map DB row to User interface
 function mapToUser(row: any): IUser {
   return {
@@ -165,6 +177,20 @@ function mapToAuctionHistory(row: any): IAuctionHistory {
     winningBidAmount: parseFloat(row.winning_bid_amount),
     paymentType: row.payment_type,
     outcomeStatus: row.outcome_status,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  }
+}
+
+function mapToAuctionParticipantBan(row: any): IAuctionParticipantBan {
+  return {
+    _id: row.id,
+    id: row.id,
+    productId: row.product_id,
+    userId: row.user_id,
+    userEmail: row.user_email,
+    bannedByEmail: row.banned_by_email,
+    reason: row.reason,
     createdAt: row.created_at,
     updatedAt: row.updated_at
   }
@@ -997,12 +1023,17 @@ export const Product = {
       params.push(updates.isActive)
       paramCount++
     }
+    if (updates.hasAuction !== undefined) {
+      updateFields.push(`has_auction = $${paramCount}`)
+      params.push(updates.hasAuction)
+      paramCount++
+    }
     if (updates.auctionStatus) {
       updateFields.push(`auction_status = $${paramCount}`)
       params.push(updates.auctionStatus)
       paramCount++
     }
-    if (updates.auctionEndTime) {
+    if (updates.auctionEndTime !== undefined) {
       updateFields.push(`auction_end_time = $${paramCount}`)
       params.push(updates.auctionEndTime)
       paramCount++
@@ -1025,6 +1056,11 @@ export const Product = {
     if (updates.$inc?.totalBids) {
       updateFields.push(`total_bids = total_bids + $${paramCount}`)
       params.push(updates.$inc.totalBids)
+      paramCount++
+    }
+    if (updates.totalBids !== undefined) {
+      updateFields.push(`total_bids = $${paramCount}`)
+      params.push(updates.totalBids)
       paramCount++
     }
 
@@ -1144,6 +1180,16 @@ export const Bid = {
       params.push(query.productId)
       paramCount++
     }
+    if (query.userId) {
+      where += ` AND user_id = $${paramCount}`
+      params.push(query.userId)
+      paramCount++
+    }
+    if (query._id) {
+      where += ` AND id = $${paramCount}`
+      params.push(query._id)
+      paramCount++
+    }
     if (query._id?.$ne) {
       where += ` AND id != $${paramCount}`
       params.push(query._id.$ne)
@@ -1156,6 +1202,112 @@ export const Bid = {
 
   lean() { return this },
   sort() { return this }
+}
+
+let auctionParticipantBanBootstrapPromise: Promise<void> | null = null
+
+async function ensureAuctionParticipantBanTable(): Promise<void> {
+  if (!auctionParticipantBanBootstrapPromise) {
+    auctionParticipantBanBootstrapPromise = (async () => {
+      await pool.query(`
+        CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+        CREATE TABLE IF NOT EXISTS auction_participant_bans (
+          id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+          product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          user_email VARCHAR(255) NOT NULL,
+          banned_by_email VARCHAR(255) NOT NULL,
+          reason TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE (product_id, user_id)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_auction_participant_bans_product_id ON auction_participant_bans(product_id);
+        CREATE INDEX IF NOT EXISTS idx_auction_participant_bans_user_id ON auction_participant_bans(user_id);
+      `)
+    })().catch((error) => {
+      auctionParticipantBanBootstrapPromise = null
+      throw error
+    })
+  }
+
+  await auctionParticipantBanBootstrapPromise
+}
+
+export const AuctionParticipantBan = {
+  async find(query: { productId?: string; userId?: string } = {}): Promise<IAuctionParticipantBan[]> {
+    await ensureAuctionParticipantBanTable()
+
+    let sql = 'SELECT * FROM auction_participant_bans WHERE 1=1'
+    const params: any[] = []
+    let paramCount = 1
+
+    if (query.productId) {
+      sql += ` AND product_id = $${paramCount}`
+      params.push(query.productId)
+      paramCount++
+    }
+
+    if (query.userId) {
+      sql += ` AND user_id = $${paramCount}`
+      params.push(query.userId)
+      paramCount++
+    }
+
+    sql += ' ORDER BY created_at DESC'
+
+    const result = await pool.query(sql, params)
+    return result.rows.map(mapToAuctionParticipantBan)
+  },
+
+  async exists(productId: string, userId: string): Promise<boolean> {
+    await ensureAuctionParticipantBanTable()
+
+    const result = await pool.query(
+      'SELECT 1 FROM auction_participant_bans WHERE product_id = $1 AND user_id = $2 LIMIT 1',
+      [productId, userId]
+    )
+
+    return result.rows.length > 0
+  },
+
+  async upsert(data: {
+    productId: string
+    userId: string
+    userEmail: string
+    bannedByEmail: string
+    reason?: string | null
+  }): Promise<IAuctionParticipantBan> {
+    await ensureAuctionParticipantBanTable()
+
+    const result = await pool.query(
+      `INSERT INTO auction_participant_bans (product_id, user_id, user_email, banned_by_email, reason)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (product_id, user_id)
+       DO UPDATE SET
+         user_email = EXCLUDED.user_email,
+         banned_by_email = EXCLUDED.banned_by_email,
+         reason = EXCLUDED.reason,
+         updated_at = CURRENT_TIMESTAMP
+       RETURNING *`,
+      [
+        data.productId,
+        data.userId,
+        data.userEmail,
+        data.bannedByEmail,
+        data.reason || null
+      ]
+    )
+
+    return mapToAuctionParticipantBan(result.rows[0])
+  },
+
+  async clearByProductId(productId: string): Promise<void> {
+    await ensureAuctionParticipantBanTable()
+    await pool.query('DELETE FROM auction_participant_bans WHERE product_id = $1', [productId])
+  }
 }
 
 // ==================== AUCTION HISTORY MODEL ====================

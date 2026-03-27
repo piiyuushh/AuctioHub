@@ -35,8 +35,6 @@ export default function UserManager() {
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
-  const [newAdminEmail, setNewAdminEmail] = useState('')
-  const [showAddForm, setShowAddForm] = useState(false)
   const [confirmDialog, setConfirmDialog] = useState<ConfirmAction>({ type: null })
 
   // Get current user's email for comparison
@@ -117,45 +115,6 @@ export default function UserManager() {
     }
   }
 
-  const addAdminUser = async () => {
-    if (!newAdminEmail.trim()) {
-      setMessage({ type: 'error', text: 'Please enter an email address' })
-      return
-    }
-
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(newAdminEmail)) {
-      setMessage({ type: 'error', text: 'Please enter a valid email address' })
-      return
-    }
-
-    try {
-      setActionLoading(true)
-      const response = await fetch('/api/admin/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: newAdminEmail.trim() })
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setMessage({ type: 'success', text: data.message })
-        setNewAdminEmail('')
-        setShowAddForm(false)
-        await fetchUsers() // Refresh the list
-      } else {
-        const errorData = await response.json()
-        setMessage({ type: 'error', text: errorData.error || 'Failed to add admin user' })
-      }
-    } catch (error) {
-      console.error('Add admin error:', error)
-      setMessage({ type: 'error', text: 'Error adding admin user' })
-    } finally {
-      setActionLoading(false)
-    }
-  }
-
   const removeUser = async (userId: string, userEmail: string, userRole: string) => {
     // Open confirmation dialog instead of using window.confirm
     setConfirmDialog({
@@ -222,13 +181,6 @@ export default function UserManager() {
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold">User Management</h2>
-          <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="px-4 py-2 bg-[#F6F4EB] border-2 border-[#4682A9] text-[#1f3f56] rounded-2xl hover:bg-[#ece9dc] disabled:opacity-50"
-            disabled={actionLoading}
-          >
-            {showAddForm ? 'Cancel' : 'Add Admin'}
-          </button>
         </div>
 
         {message && (
@@ -238,50 +190,6 @@ export default function UserManager() {
               : 'bg-red-100 text-red-700 border border-red-300'
           }`}>
             {message.text}
-          </div>
-        )}
-
-        {showAddForm && (
-          <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-            <h3 className="text-lg font-medium mb-3">Add New Admin User</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  value={newAdminEmail}
-                  onChange={(e) => setNewAdminEmail(e.target.value)}
-                  placeholder="user@example.com"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  disabled={actionLoading}
-                />
-                <p className="text-sm text-gray-500 mt-1">
-                  Enter the email address of the user you want to grant admin access to.
-                </p>
-              </div>
-              
-              <div className="flex space-x-3">
-                <button
-                  onClick={addAdminUser}
-                  disabled={actionLoading}
-                  className="px-4 py-2 bg-[#F6F4EB] border-2 border-[#4682A9] text-[#1f3f56] rounded-2xl hover:bg-[#ece9dc] disabled:opacity-50"
-                >
-                  {actionLoading ? 'Adding...' : 'Grant Admin Access'}
-                </button>
-                <button
-                  onClick={() => {
-                    setShowAddForm(false)
-                    setNewAdminEmail('')
-                  }}
-                  disabled={actionLoading}
-                  className="px-4 py-2 bg-[#F6F4EB] border-2 border-[#4682A9] text-[#1f3f56] rounded-2xl hover:bg-[#ece9dc]"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
           </div>
         )}
 

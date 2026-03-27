@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { pool } from '@/lib/database'
-import { Product, Bid } from '@/lib/models'
+import { Product, Bid, AuctionParticipantBan } from '@/lib/models'
 
 // POST - Place a bid on a product
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     
-    if (!session?.user?.email) {
+    if (!session?.user?.email || !session.user.id) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -32,6 +31,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Product not found' },
         { status: 404 }
+      )
+    }
+
+    const isBanned = await AuctionParticipantBan.exists(productId, session.user.id)
+    if (isBanned) {
+      return NextResponse.json(
+        { error: 'You were removed from this auction session by an administrator' },
+        { status: 403 }
       )
     }
 

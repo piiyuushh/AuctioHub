@@ -109,6 +109,22 @@ CREATE INDEX IF NOT EXISTS idx_bids_user_id ON bids(user_id);
 CREATE INDEX IF NOT EXISTS idx_bids_is_winning ON bids(is_winning);
 CREATE INDEX IF NOT EXISTS idx_bids_is_active ON bids(is_active);
 
+-- ==================== AUCTION PARTICIPANT BANS TABLE ====================
+CREATE TABLE IF NOT EXISTS auction_participant_bans (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_email VARCHAR(255) NOT NULL,
+  banned_by_email VARCHAR(255) NOT NULL,
+  reason TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (product_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_auction_participant_bans_product_id ON auction_participant_bans(product_id);
+CREATE INDEX IF NOT EXISTS idx_auction_participant_bans_user_id ON auction_participant_bans(user_id);
+
 -- ==================== CHAT MESSAGES TABLE ====================
 CREATE TABLE IF NOT EXISTS chat_messages (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -173,6 +189,9 @@ CREATE TRIGGER update_products_updated_at BEFORE UPDATE ON products
 
 CREATE TRIGGER update_bids_updated_at BEFORE UPDATE ON bids
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_auction_participant_bans_updated_at BEFORE UPDATE ON auction_participant_bans
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_chat_messages_updated_at BEFORE UPDATE ON chat_messages
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
