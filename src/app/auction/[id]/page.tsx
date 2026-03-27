@@ -60,10 +60,33 @@ export default function AuctionSessionPage() {
       router.push("/sign-in");
       return;
     }
-    fetchProduct();
-    fetchMessages();
-    const messageInterval = setInterval(fetchMessages, 2000);
-    return () => clearInterval(messageInterval);
+
+    let messageInterval: ReturnType<typeof setInterval> | null = null;
+
+    const initializeAuctionSession = async () => {
+      try {
+        const accessResponse = await fetch(`/api/auction/${productId}/access`);
+        if (!accessResponse.ok) {
+          router.push("/category");
+          return;
+        }
+
+        await fetchProduct();
+        await fetchMessages();
+        messageInterval = setInterval(fetchMessages, 2000);
+      } catch (error) {
+        console.error("Error initializing auction session:", error);
+        router.push("/category");
+      }
+    };
+
+    initializeAuctionSession();
+
+    return () => {
+      if (messageInterval) {
+        clearInterval(messageInterval);
+      }
+    };
   }, [session, productId]);
 
   useEffect(() => {

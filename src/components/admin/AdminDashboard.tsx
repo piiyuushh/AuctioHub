@@ -7,6 +7,7 @@ import Image from 'next/image'
 import CarouselManager from './CarouselManager'
 import UserManager from './UserManager'
 import NewArrivalsManager from './NewArrivalsManager'
+import AuctionManager from './AuctionManager'
 import { FiHome, FiUsers, FiImage, FiPackage, FiSettings, FiActivity, FiTrendingUp, FiShoppingBag, FiBarChart2, FiDownload } from 'react-icons/fi'
 import { exportDashboardPdf } from '@/lib/pdf-export'
 import { AlertDialog } from '@/components/ui/AlertDialog'
@@ -124,7 +125,7 @@ export default function AdminDashboard() {
     { id: 'carousel', label: 'Carousel', icon: FiImage, available: true, color: 'blue' },
     { id: 'newarrivals', label: 'New Arrivals', icon: FiTrendingUp, available: true, color: 'green' },
     { id: 'users', label: 'Users', icon: FiUsers, available: true, color: 'purple' },
-    { id: 'products', label: 'Products', icon: FiPackage, available: false, color: 'orange' },
+    { id: 'auction', label: 'Auction', icon: FiPackage, available: true, color: 'orange' },
     { id: 'settings', label: 'Settings', icon: FiSettings, available: false, color: 'gray' },
   ]
 
@@ -413,19 +414,20 @@ export default function AdminDashboard() {
               </div>
             )}
             
-            {activeTab === 'products' && (
-              <div className="text-center py-20">
-                <div className="w-20 h-20 mx-auto bg-orange-100 rounded-full flex items-center justify-center mb-6 shadow-lg">
-                  <FiPackage className="text-4xl text-orange-600" />
+            {activeTab === 'auction' && (
+              <div>
+                <div className="mb-8">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-3 bg-orange-100 rounded-xl">
+                      <FiPackage className="text-2xl text-orange-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-black">Auction Management</h2>
+                      <p className="text-sm text-gray-600 mt-1">Monitor active auctions, manage bidders, and control session timing</p>
+                    </div>
+                  </div>
                 </div>
-                <h3 className="text-2xl font-bold text-black mb-3">Product Management</h3>
-                <p className="text-gray-600 mb-8 max-w-md mx-auto">
-                  Advanced product management features are currently in development
-                </p>
-                <div className="inline-flex items-center px-6 py-3 bg-orange-100 text-orange-700 rounded-xl font-semibold">
-                  <FiSettings className="mr-2" />
-                  Coming Soon
-                </div>
+                <AuctionManager />
               </div>
             )}
             

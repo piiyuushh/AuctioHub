@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { FaTimes, FaRegBookmark, FaShoppingBag, FaUser, FaSignOutAlt } from "react-icons/fa";
+import { FaTimes, FaUser, FaSignOutAlt } from "react-icons/fa";
 import Image from "next/image";
 import { useSession, signOut } from "next-auth/react";
 import { AdminLink } from "./AdminLink";
@@ -218,15 +218,6 @@ export function Header() {
 
           {/* Mobile Icons */}
           <div className="flex items-center space-x-2">
-            <button 
-              className="relative p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-all duration-300 touch-manipulation"
-              aria-label="Shopping cart"
-            >
-              <FaShoppingBag className="text-lg text-gray-600" />
-              <div className="absolute -top-1 -right-1 w-4 h-4 bg-black text-white text-xs rounded-full flex items-center justify-center font-bold">
-                3
-              </div>
-            </button>
             <div className="touch-manipulation">
               <ConditionalUserButton />
             </div>
@@ -272,17 +263,6 @@ export function Header() {
 
           {/* Desktop Icons */}
           <div className="flex items-center space-x-4">
-            <button className="relative p-3 rounded-full bg-gray-50 hover:bg-gray-100 transition-all duration-300 group hover:scale-110">
-              <FaRegBookmark className="text-xl text-gray-600 group-hover:text-black transition-colors duration-300" />
-              <div className="absolute top-0 right-0 w-2 h-2 bg-black rounded-full animate-pulse"></div>
-            </button>
-
-            <button className="relative p-3 rounded-full bg-gray-50 hover:bg-gray-100 transition-all duration-300 group hover:scale-110">
-              <FaShoppingBag className="text-xl text-gray-600 group-hover:text-black transition-colors duration-300" />
-              <div className="absolute -top-1 -right-1 w-5 h-5 bg-black text-white text-xs rounded-full flex items-center justify-center font-bold">
-                3
-              </div>
-            </button>
 
             <AdminLink />
             <UserLink />
@@ -335,7 +315,6 @@ export function Header() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <AdminLink />
                   <UserLink />
                 </div>
               </div>
@@ -363,26 +342,10 @@ export function Header() {
                       <span className="text-sm">→</span>
                     </Link>
                   ))}
+                  <AdminLink mode="menu-item" onNavigate={handleCloseMenu} />
                 </div>
               </div>
 
-              {/* Quick Actions */}
-              <div className="mobile-menu-section action-section p-4 border-t border-gray-100">
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Quick Actions</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <button className="flex flex-col items-center p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors duration-200">
-                    <FaRegBookmark className="text-xl text-gray-600 mb-1" />
-                    <span className="text-xs font-medium text-gray-600">Saved</span>
-                  </button>
-                  <button className="flex flex-col items-center p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors duration-200 relative">
-                    <FaShoppingBag className="text-xl text-gray-600 mb-1" />
-                    <span className="text-xs font-medium text-gray-600">Cart</span>
-                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-black text-white text-xs rounded-full flex items-center justify-center font-bold">
-                      3
-                    </div>
-                  </button>
-                </div>
-              </div>
 
               {/* Footer */}
               <div className="mobile-menu-section footer-section p-4 border-t border-gray-100 bg-gray-50 mt-auto">

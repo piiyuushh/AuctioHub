@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { pool } from '@/lib/database'
 import { Product } from '@/lib/models'
+import { finalizeAuctionIfExpired, finalizeExpiredAuctionsForList } from '@/lib/auction-finalization'
+import { emitAuctionEnded, emitAuctionStarted, emitAuctionWon } from '@/lib/notifications'
 
 // GET - Fetch all active products (public) or single product by ID
 export async function GET(request: NextRequest) {
@@ -14,24 +15,29 @@ export async function GET(request: NextRequest) {
     // If ID is provided, fetch single product
     if (productId) {
       const product = await Product.findById(productId)
-      
+
       if (!product) {
         return NextResponse.json(
           { error: 'Product not found' },
           { status: 404 }
         )
       }
-      
-      return NextResponse.json(product)
+
+      const finalizedProduct = await finalizeAuctionIfExpired(product, 'products:get-single')
+      return NextResponse.json(finalizedProduct)
     }
-    
+
     // Otherwise, fetch all products
-    const allProducts = await Product.find({ isActive: true })
-    const products = allProducts.sort((a, b) => 
+    let allProducts = await Product.find({ isActive: true })
+    const finalizedAny = await finalizeExpiredAuctionsForList(allProducts, 'products:get-list')
+    if (finalizedAny) {
+      allProducts = await Product.find({ isActive: true })
+    }
+
+    const products = allProducts.sort((a, b) =>
       new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()
     )
-      
-    
+
     return NextResponse.json(products)
   } catch (error) {
     console.error('Error fetching products:', error)
@@ -94,6 +100,10 @@ export async function POST(request: NextRequest) {
 
     const product = await Product.create(productData)
 
+    if (product.hasAuction) {
+      await emitAuctionStarted(product)
+    }
+
     return NextResponse.json(product, { status: 201 })
   } catch (error) {
     console.error('Error creating product:', error)
@@ -152,18 +162,7 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // Handle auction end
-    if (endAuction && product.hasAuction) {
-      product.auctionStatus = 'ended'
-      product.auctionEndTime = new Date()
-    }
-
-    // Handle auction extension
-    if (extendAuction && product.hasAuction && product.auctionStatus === 'active') {
-      const currentEndTime = product.auctionEndTime || new Date()
-      const hours = extensionHours || 24
-      product.auctionEndTime = new Date(currentEndTime.getTime() + hours * 60 * 60 * 1000)
-    }
+    const wasActiveAuction = product.hasAuction && product.auctionStatus === 'active'
 
     // Update other fields
     const updateData: any = {}
@@ -171,12 +170,33 @@ export async function PUT(request: NextRequest) {
     if (description) updateData.description = description
     if (imageUrl) updateData.imageUrl = imageUrl
     if (cloudinary_public_id !== undefined) updateData.cloudinary_public_id = cloudinary_public_id
-    
+
+    // Handle auction end
+    if (endAuction && product.hasAuction) {
+      updateData.auctionStatus = 'ended'
+      updateData.auctionEndTime = new Date()
+    }
+
+    // Handle auction extension
+    if (extendAuction && product.hasAuction && product.auctionStatus === 'active') {
+      const currentEndTime = product.auctionEndTime || new Date()
+      const hours = extensionHours || 24
+      updateData.auctionEndTime = new Date(currentEndTime.getTime() + hours * 60 * 60 * 1000)
+    }
+
     if (Object.keys(updateData).length > 0) {
       await Product.findByIdAndUpdate(productId, updateData)
     }
 
     const updatedProduct = await Product.findById(productId)
+
+    if (updatedProduct && endAuction && wasActiveAuction && updatedProduct.auctionStatus === 'ended') {
+      await Promise.all([
+        emitAuctionEnded(updatedProduct, 'products:put-endAuction'),
+        emitAuctionWon(updatedProduct),
+      ])
+    }
+
     return NextResponse.json(updatedProduct)
   } catch (error) {
     console.error('Error updating product:', error)

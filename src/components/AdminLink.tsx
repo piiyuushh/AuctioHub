@@ -4,7 +4,14 @@ import { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import { FaChevronDown } from 'react-icons/fa'
 
-export function AdminLink() {
+type AdminLinkMode = 'chip' | 'menu-item'
+
+interface AdminLinkProps {
+  mode?: AdminLinkMode
+  onNavigate?: () => void
+}
+
+export function AdminLink({ mode = 'chip', onNavigate }: AdminLinkProps) {
   const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
@@ -47,6 +54,19 @@ export function AdminLink() {
 
   if (loading || !isAdmin) {
     return null
+  }
+
+  if (mode === 'menu-item') {
+    return (
+      <Link
+        href="/admin"
+        onClick={onNavigate}
+        className="mobile-menu-item flex items-center justify-between p-3 rounded-xl transition-all duration-200 bg-red-50 hover:bg-red-100 text-red-700"
+      >
+        <span className="text-base font-medium">Admin Dashboard</span>
+        <span className="text-sm">→</span>
+      </Link>
+    )
   }
 
   return (

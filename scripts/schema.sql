@@ -109,6 +109,22 @@ CREATE INDEX IF NOT EXISTS idx_bids_user_id ON bids(user_id);
 CREATE INDEX IF NOT EXISTS idx_bids_is_winning ON bids(is_winning);
 CREATE INDEX IF NOT EXISTS idx_bids_is_active ON bids(is_active);
 
+-- ==================== AUCTION PARTICIPANT BANS TABLE ====================
+CREATE TABLE IF NOT EXISTS auction_participant_bans (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_email VARCHAR(255) NOT NULL,
+  banned_by_email VARCHAR(255) NOT NULL,
+  reason TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (product_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_auction_participant_bans_product_id ON auction_participant_bans(product_id);
+CREATE INDEX IF NOT EXISTS idx_auction_participant_bans_user_id ON auction_participant_bans(user_id);
+
 -- ==================== CHAT MESSAGES TABLE ====================
 CREATE TABLE IF NOT EXISTS chat_messages (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -145,6 +161,27 @@ CREATE INDEX IF NOT EXISTS idx_auction_history_conducted_at ON auction_history(c
 CREATE INDEX IF NOT EXISTS idx_auction_history_winner_user_id ON auction_history(winner_user_id);
 CREATE INDEX IF NOT EXISTS idx_auction_history_product_id ON auction_history(product_id);
 
+-- ==================== NOTIFICATION EVENTS TABLE ====================
+CREATE TABLE IF NOT EXISTS notification_events (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  event_type VARCHAR(80) NOT NULL,
+  product_id UUID REFERENCES products(id) ON DELETE SET NULL,
+  recipient_user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  severity VARCHAR(20) NOT NULL DEFAULT 'info' CHECK (severity IN ('info', 'success', 'warning', 'destructive')),
+  action_url TEXT,
+  metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  dedupe_key VARCHAR(255),
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  expires_at TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_notification_events_created_at ON notification_events(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notification_events_event_type ON notification_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_notification_events_recipient_user_id ON notification_events(recipient_user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_notification_events_dedupe_key ON notification_events(dedupe_key) WHERE dedupe_key IS NOT NULL;
+
 -- ==================== TRIGGERS FOR UPDATED_AT ====================
 -- Function to update the updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -173,6 +210,9 @@ CREATE TRIGGER update_products_updated_at BEFORE UPDATE ON products
 
 CREATE TRIGGER update_bids_updated_at BEFORE UPDATE ON bids
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_auction_participant_bans_updated_at BEFORE UPDATE ON auction_participant_bans
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_chat_messages_updated_at BEFORE UPDATE ON chat_messages
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

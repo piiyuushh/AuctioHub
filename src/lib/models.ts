@@ -111,6 +111,34 @@ export interface IAuctionHistory {
   updatedAt?: Date
 }
 
+export interface IAuctionParticipantBan {
+  _id?: string
+  id?: string
+  productId: string
+  userId: string
+  userEmail: string
+  bannedByEmail: string
+  reason?: string | null
+  createdAt?: Date
+  updatedAt?: Date
+}
+
+export interface INotificationEvent {
+  _id?: string
+  id?: string
+  eventType: string
+  productId?: string | null
+  recipientUserId?: string | null
+  title: string
+  description?: string | null
+  severity: 'info' | 'success' | 'warning' | 'destructive'
+  actionUrl?: string | null
+  metadata?: Record<string, unknown>
+  dedupeKey?: string | null
+  createdAt?: Date
+  expiresAt?: Date | null
+}
+
 // Helper: Map DB row to User interface
 function mapToUser(row: any): IUser {
   return {
@@ -167,6 +195,38 @@ function mapToAuctionHistory(row: any): IAuctionHistory {
     outcomeStatus: row.outcome_status,
     createdAt: row.created_at,
     updatedAt: row.updated_at
+  }
+}
+
+function mapToAuctionParticipantBan(row: any): IAuctionParticipantBan {
+  return {
+    _id: row.id,
+    id: row.id,
+    productId: row.product_id,
+    userId: row.user_id,
+    userEmail: row.user_email,
+    bannedByEmail: row.banned_by_email,
+    reason: row.reason,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  }
+}
+
+function mapToNotificationEvent(row: any): INotificationEvent {
+  return {
+    _id: row.id,
+    id: row.id,
+    eventType: row.event_type,
+    productId: row.product_id,
+    recipientUserId: row.recipient_user_id,
+    title: row.title,
+    description: row.description,
+    severity: row.severity,
+    actionUrl: row.action_url,
+    metadata: row.metadata || {},
+    dedupeKey: row.dedupe_key,
+    createdAt: row.created_at,
+    expiresAt: row.expires_at,
   }
 }
 
@@ -997,12 +1057,17 @@ export const Product = {
       params.push(updates.isActive)
       paramCount++
     }
+    if (updates.hasAuction !== undefined) {
+      updateFields.push(`has_auction = $${paramCount}`)
+      params.push(updates.hasAuction)
+      paramCount++
+    }
     if (updates.auctionStatus) {
       updateFields.push(`auction_status = $${paramCount}`)
       params.push(updates.auctionStatus)
       paramCount++
     }
-    if (updates.auctionEndTime) {
+    if (updates.auctionEndTime !== undefined) {
       updateFields.push(`auction_end_time = $${paramCount}`)
       params.push(updates.auctionEndTime)
       paramCount++
@@ -1025,6 +1090,11 @@ export const Product = {
     if (updates.$inc?.totalBids) {
       updateFields.push(`total_bids = total_bids + $${paramCount}`)
       params.push(updates.$inc.totalBids)
+      paramCount++
+    }
+    if (updates.totalBids !== undefined) {
+      updateFields.push(`total_bids = $${paramCount}`)
+      params.push(updates.totalBids)
       paramCount++
     }
 
@@ -1144,6 +1214,16 @@ export const Bid = {
       params.push(query.productId)
       paramCount++
     }
+    if (query.userId) {
+      where += ` AND user_id = $${paramCount}`
+      params.push(query.userId)
+      paramCount++
+    }
+    if (query._id) {
+      where += ` AND id = $${paramCount}`
+      params.push(query._id)
+      paramCount++
+    }
     if (query._id?.$ne) {
       where += ` AND id != $${paramCount}`
       params.push(query._id.$ne)
@@ -1156,6 +1236,211 @@ export const Bid = {
 
   lean() { return this },
   sort() { return this }
+}
+
+let auctionParticipantBanBootstrapPromise: Promise<void> | null = null
+
+async function ensureAuctionParticipantBanTable(): Promise<void> {
+  if (!auctionParticipantBanBootstrapPromise) {
+    auctionParticipantBanBootstrapPromise = (async () => {
+      await pool.query(`
+        CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+        CREATE TABLE IF NOT EXISTS auction_participant_bans (
+          id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+          product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          user_email VARCHAR(255) NOT NULL,
+          banned_by_email VARCHAR(255) NOT NULL,
+          reason TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE (product_id, user_id)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_auction_participant_bans_product_id ON auction_participant_bans(product_id);
+        CREATE INDEX IF NOT EXISTS idx_auction_participant_bans_user_id ON auction_participant_bans(user_id);
+      `)
+    })().catch((error) => {
+      auctionParticipantBanBootstrapPromise = null
+      throw error
+    })
+  }
+
+  await auctionParticipantBanBootstrapPromise
+}
+
+export const AuctionParticipantBan = {
+  async find(query: { productId?: string; userId?: string } = {}): Promise<IAuctionParticipantBan[]> {
+    await ensureAuctionParticipantBanTable()
+
+    let sql = 'SELECT * FROM auction_participant_bans WHERE 1=1'
+    const params: any[] = []
+    let paramCount = 1
+
+    if (query.productId) {
+      sql += ` AND product_id = $${paramCount}`
+      params.push(query.productId)
+      paramCount++
+    }
+
+    if (query.userId) {
+      sql += ` AND user_id = $${paramCount}`
+      params.push(query.userId)
+      paramCount++
+    }
+
+    sql += ' ORDER BY created_at DESC'
+
+    const result = await pool.query(sql, params)
+    return result.rows.map(mapToAuctionParticipantBan)
+  },
+
+  async exists(productId: string, userId: string): Promise<boolean> {
+    await ensureAuctionParticipantBanTable()
+
+    const result = await pool.query(
+      'SELECT 1 FROM auction_participant_bans WHERE product_id = $1 AND user_id = $2 LIMIT 1',
+      [productId, userId]
+    )
+
+    return result.rows.length > 0
+  },
+
+  async upsert(data: {
+    productId: string
+    userId: string
+    userEmail: string
+    bannedByEmail: string
+    reason?: string | null
+  }): Promise<IAuctionParticipantBan> {
+    await ensureAuctionParticipantBanTable()
+
+    const result = await pool.query(
+      `INSERT INTO auction_participant_bans (product_id, user_id, user_email, banned_by_email, reason)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (product_id, user_id)
+       DO UPDATE SET
+         user_email = EXCLUDED.user_email,
+         banned_by_email = EXCLUDED.banned_by_email,
+         reason = EXCLUDED.reason,
+         updated_at = CURRENT_TIMESTAMP
+       RETURNING *`,
+      [
+        data.productId,
+        data.userId,
+        data.userEmail,
+        data.bannedByEmail,
+        data.reason || null
+      ]
+    )
+
+    return mapToAuctionParticipantBan(result.rows[0])
+  },
+
+  async clearByProductId(productId: string): Promise<void> {
+    await ensureAuctionParticipantBanTable()
+    await pool.query('DELETE FROM auction_participant_bans WHERE product_id = $1', [productId])
+  }
+}
+
+let notificationEventBootstrapPromise: Promise<void> | null = null
+
+async function ensureNotificationEventTable(): Promise<void> {
+  if (!notificationEventBootstrapPromise) {
+    notificationEventBootstrapPromise = (async () => {
+      await pool.query(`
+        CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+        CREATE TABLE IF NOT EXISTS notification_events (
+          id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+          event_type VARCHAR(80) NOT NULL,
+          product_id UUID REFERENCES products(id) ON DELETE SET NULL,
+          recipient_user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+          title VARCHAR(255) NOT NULL,
+          description TEXT,
+          severity VARCHAR(20) NOT NULL DEFAULT 'info' CHECK (severity IN ('info', 'success', 'warning', 'destructive')),
+          action_url TEXT,
+          metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+          dedupe_key VARCHAR(255),
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          expires_at TIMESTAMP
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_notification_events_created_at ON notification_events(created_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_notification_events_event_type ON notification_events(event_type);
+        CREATE INDEX IF NOT EXISTS idx_notification_events_recipient_user_id ON notification_events(recipient_user_id);
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_notification_events_dedupe_key ON notification_events(dedupe_key) WHERE dedupe_key IS NOT NULL;
+      `)
+    })().catch((error) => {
+      notificationEventBootstrapPromise = null
+      throw error
+    })
+  }
+
+  await notificationEventBootstrapPromise
+}
+
+export const NotificationEvent = {
+  async create(data: Partial<INotificationEvent>): Promise<INotificationEvent | null> {
+    await ensureNotificationEventTable()
+
+    const result = await pool.query(
+      `INSERT INTO notification_events (
+        event_type,
+        product_id,
+        recipient_user_id,
+        title,
+        description,
+        severity,
+        action_url,
+        metadata,
+        dedupe_key,
+        expires_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10)
+      ON CONFLICT (dedupe_key) WHERE dedupe_key IS NOT NULL DO NOTHING
+      RETURNING *`,
+      [
+        data.eventType,
+        data.productId || null,
+        data.recipientUserId || null,
+        data.title,
+        data.description || null,
+        data.severity || 'info',
+        data.actionUrl || null,
+        JSON.stringify(data.metadata || {}),
+        data.dedupeKey || null,
+        data.expiresAt || null,
+      ]
+    )
+
+    if (result.rows.length === 0) {
+      return null
+    }
+
+    return mapToNotificationEvent(result.rows[0])
+  },
+
+  async findForUserSince(input: {
+    recipientUserId: string
+    since: Date
+    limit?: number
+  }): Promise<INotificationEvent[]> {
+    await ensureNotificationEventTable()
+
+    const result = await pool.query(
+      `SELECT *
+       FROM notification_events
+       WHERE created_at > $1
+         AND (expires_at IS NULL OR expires_at > NOW())
+         AND (recipient_user_id = $2 OR recipient_user_id IS NULL)
+       ORDER BY created_at ASC
+       LIMIT $3`,
+      [input.since, input.recipientUserId, input.limit || 50]
+    )
+
+    return result.rows.map(mapToNotificationEvent)
+  },
 }
 
 // ==================== AUCTION HISTORY MODEL ====================

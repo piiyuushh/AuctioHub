@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { pool } from '@/lib/database'
-import { Product, Bid } from '@/lib/models'
+import { Product, Bid, AuctionParticipantBan } from '@/lib/models'
+import { finalizeAuctionIfExpired } from '@/lib/auction-finalization'
 
 // POST - Place a bid on a product
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     
-    if (!session?.user?.email) {
+    if (!session?.user?.email || !session.user.id) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -35,6 +35,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const isBanned = await AuctionParticipantBan.exists(productId, session.user.id)
+    if (isBanned) {
+      return NextResponse.json(
+        { error: 'You were removed from this auction session by an administrator' },
+        { status: 403 }
+      )
+    }
+
     // Check if product has auction
     if (!product.hasAuction) {
       return NextResponse.json(
@@ -52,8 +60,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if auction time has expired
-    if (product.auctionEndTime && new Date(product.auctionEndTime) < new Date()) {
-      await Product.findByIdAndUpdate(productId, { auctionStatus: 'ended' })
+    const finalized = await finalizeAuctionIfExpired(product, 'products:bid')
+    if (finalized.auctionStatus === 'ended') {
       return NextResponse.json(
         { error: 'This auction has ended' },
         { status: 400 }
