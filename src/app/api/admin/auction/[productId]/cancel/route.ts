@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/admin'
 import { AuctionParticipantBan, Bid, Product } from '@/lib/models'
+import { emitAuctionEnded, emitAuctionWon } from '@/lib/notifications'
 
 export async function POST(
   _request: NextRequest,
@@ -39,6 +40,13 @@ export async function POST(
     ])
 
     const updated = await Product.findById(productId)
+
+    if (updated) {
+      await Promise.all([
+        emitAuctionEnded(updated, 'admin:cancel-auction'),
+        emitAuctionWon(updated),
+      ])
+    }
 
     return NextResponse.json({
       success: true,

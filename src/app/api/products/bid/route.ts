@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { Product, Bid, AuctionParticipantBan } from '@/lib/models'
+import { finalizeAuctionIfExpired } from '@/lib/auction-finalization'
 
 // POST - Place a bid on a product
 export async function POST(request: NextRequest) {
@@ -59,8 +60,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if auction time has expired
-    if (product.auctionEndTime && new Date(product.auctionEndTime) < new Date()) {
-      await Product.findByIdAndUpdate(productId, { auctionStatus: 'ended' })
+    const finalized = await finalizeAuctionIfExpired(product, 'products:bid')
+    if (finalized.auctionStatus === 'ended') {
       return NextResponse.json(
         { error: 'This auction has ended' },
         { status: 400 }

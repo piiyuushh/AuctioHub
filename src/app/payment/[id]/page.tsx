@@ -25,7 +25,6 @@ interface Product {
 }
 
 type PaymentMethod = "card" | "mobile" | null;
-type PaymentType = "full" | "penalty" | null;
 
 export default function PaymentPage() {
   const { data: session } = useSession();
@@ -36,7 +35,6 @@ export default function PaymentPage() {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>(null);
-  const [paymentType, setPaymentType] = useState<PaymentType>(null);
   const [processing, setProcessing] = useState(false);
   const [showPenaltyConfirm, setShowPenaltyConfirm] = useState(false);
   const [alertDialog, setAlertDialog] = useState({ open: false, title: '', message: '', variant: 'default' as 'default' | 'destructive' | 'success' });
@@ -54,23 +52,54 @@ export default function PaymentPage() {
       const response = await fetch(`/api/products?id=${productId}`);
       if (response.ok) {
         const data = await response.json();
-        
+
         // Verify user is the winner
         if (data.highestBidderEmail !== session?.user?.email) {
-          router.push("/category");
+          setAlertDialog({
+            open: true,
+            title: "Payment Access Denied",
+            message: "You are not the winner of this auction, so payment is not available.",
+            variant: "destructive",
+          });
+          setTimeout(() => router.push("/category"), 1400);
           return;
         }
-        
+
         setProduct(data);
       } else {
-        router.push("/category");
+        setAlertDialog({
+          open: true,
+          title: "Product Not Available",
+          message: "This auction item is no longer available for payment.",
+          variant: "destructive",
+        });
+        setTimeout(() => router.push("/category"), 1400);
       }
     } catch (error) {
       console.error("Error fetching product:", error);
-      router.push("/category");
+      setAlertDialog({
+        open: true,
+        title: "Error",
+        message: "Unable to load auction payment details.",
+        variant: "destructive",
+      });
+      setTimeout(() => router.push("/category"), 1400);
     } finally {
       setLoading(false);
     }
+  };
+
+  const finalizePayment = async (type: "full" | "penalty") => {
+    await fetch("/api/payment/process-completion", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        productId: product?._id,
+        paymentType: type,
+      }),
+    });
   };
 
   const handlePayment = async (type: "full" | "penalty") => {
@@ -119,7 +148,8 @@ export default function PaymentPage() {
         }
       } else if (selectedMethod === "mobile") {
         // Mobile payment (demo)
-        setTimeout(() => {
+        setTimeout(async () => {
+          await finalizePayment(type);
           setProcessing(false);
           const message = type === "full"
             ? "Mobile payment successful! Thank you for your purchase."
@@ -164,6 +194,14 @@ export default function PaymentPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p>Product not found</p>
+        <AlertDialog
+          open={alertDialog.open}
+          onOpenChange={(open) => setAlertDialog({ ...alertDialog, open })}
+          title={alertDialog.title}
+          description={alertDialog.message}
+          confirmText="Close"
+          variant={alertDialog.variant as 'default' | 'destructive' | 'success'}
+        />
       </div>
     );
   }

@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { requireAdmin } from '@/lib/admin'
 import { pool } from '@/lib/database'
 import { AuctionParticipantBan, Bid, Product, User } from '@/lib/models'
+import { emitAuctionWon, emitUserRemovedFromAuction } from '@/lib/notifications'
 
 export async function POST(
   request: NextRequest,
@@ -110,6 +111,17 @@ export async function POST(
     }
 
     const updatedAuction = await Product.findById(productId)
+
+    await emitUserRemovedFromAuction({
+      product,
+      userId,
+      userEmail: user.email,
+      reason,
+    })
+
+    if (updatedAuction) {
+      await emitAuctionWon(updatedAuction)
+    }
 
     return NextResponse.json({
       success: true,
