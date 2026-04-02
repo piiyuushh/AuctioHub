@@ -1,16 +1,13 @@
 import { NextResponse } from 'next/server'
-import { pool } from '@/lib/database'
-import { NewArrival } from '@/lib/models'
+import { getPublicNewArrivals } from '@/lib/public-content'
+
+export const revalidate = 300
 
 // Get active new arrival products for public display
 export async function GET() {
   try {
     console.log('Getting active new arrival products...')
-    
-    // Only return active products for public endpoint
-    const allProducts = await NewArrival.find({ isActive: true })
-    // Already sorted by order in the model
-    const products = allProducts.slice(0, 4) // Limit to 4 products as shown in the component
+    const products = await getPublicNewArrivals()
     
     console.log('Found active new arrival products:', products.length)
     return NextResponse.json(products)

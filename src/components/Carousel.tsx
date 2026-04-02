@@ -12,6 +12,10 @@ interface CarouselImage {
   isActive: boolean;
 }
 
+interface HeroCarouselProps {
+  initialImages?: string[];
+}
+
 // Fallback images in case database is empty or unavailable
 const fallbackImages = [
   "/assets/banners/banner 1.png",
@@ -19,10 +23,10 @@ const fallbackImages = [
   "/assets/banners/banner 3.png",
 ];
 
-const HeroCarousel = () => {
+const HeroCarousel = ({ initialImages }: HeroCarouselProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [images, setImages] = useState<string[]>(fallbackImages);
-  const [loading, setLoading] = useState(true);
+  const [images, setImages] = useState<string[]>(initialImages?.length ? initialImages : fallbackImages);
+  const [loading, setLoading] = useState(!initialImages?.length);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
@@ -76,6 +80,12 @@ const HeroCarousel = () => {
   const handleMouseLeave = () => setIsAutoPlaying(true);
 
   useEffect(() => {
+    if (initialImages?.length) {
+      setImages(initialImages)
+      setLoading(false)
+      return
+    }
+
     // Fetch carousel images from public API endpoint
     const fetchImages = async () => {
       try {
@@ -98,7 +108,7 @@ const HeroCarousel = () => {
     };
 
     fetchImages();
-  }, []);
+  }, [initialImages]);
 
   useEffect(() => {
     if (loading || !isAutoPlaying) return; // Don't start interval while loading or paused

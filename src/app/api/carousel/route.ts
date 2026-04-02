@@ -1,15 +1,11 @@
 import { NextResponse } from 'next/server'
-import { pool } from '@/lib/database'
-import { CarouselImage } from '@/lib/models'
+import { getPublicCarouselImages } from '@/lib/public-content'
+
+export const revalidate = 300
 
 export async function GET() {
   try {
-    
-    // Public endpoint - no authentication required
-    // Only return active images ordered by their order field
-    const images = await CarouselImage.find({ isActive: true })
-    // Already sorted by order in the model
-    
+    const images = await getPublicCarouselImages()
     return NextResponse.json(images)
   } catch (error) {
     console.error('Public carousel GET Error:', {

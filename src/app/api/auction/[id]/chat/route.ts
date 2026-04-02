@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { pool } from "@/lib/database";
 import { ChatMessage } from "@/lib/models";
 
 // GET - Fetch chat messages for an auction
@@ -15,18 +14,17 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const after = searchParams.get("after");
 
-    let query: any = { productId };
+    const query: any = { productId, limit: 100 };
 
-    // If 'after' timestamp is provided, only fetch messages after that time
+    // Incremental polling: only return messages newer than the last client cursor.
     if (after) {
-      query.createdAt = { $gt: new Date(after) };
+      const parsedAfter = new Date(after);
+      if (!Number.isNaN(parsedAfter.getTime())) {
+        query.afterCreatedAt = parsedAfter;
+      }
     }
 
-    const allMessages = await ChatMessage.find(query)
-    // Sort and limit in JavaScript
-    const messages = allMessages
-      .sort((a, b) => new Date(a.createdAt!).getTime() - new Date(b.createdAt!).getTime())
-      .slice(0, 100);
+    const messages = await ChatMessage.find(query)
 
     return NextResponse.json(messages);
   } catch (error) {

@@ -14,6 +14,10 @@ interface NewArrivalProduct {
   isActive: boolean;
 }
 
+interface NewArrivalProps {
+  initialProducts?: NewArrivalProduct[];
+}
+
 const isNewArrivalProductArray = (value: unknown): value is NewArrivalProduct[] => {
   return (
     Array.isArray(value) &&
@@ -29,9 +33,9 @@ const isNewArrivalProductArray = (value: unknown): value is NewArrivalProduct[] 
   );
 };
 
-const NewArrival = () => {
-  const [products, setProducts] = useState<NewArrivalProduct[]>([]);
-  const [loading, setLoading] = useState(true);
+const NewArrival = ({ initialProducts }: NewArrivalProps) => {
+  const [products, setProducts] = useState<NewArrivalProduct[]>(initialProducts ?? []);
+  const [loading, setLoading] = useState(!initialProducts?.length);
   const [error, setError] = useState<string | null>(null);
 
   // Default fallback products
@@ -71,6 +75,13 @@ const NewArrival = () => {
   ];
 
   useEffect(() => {
+    if (initialProducts?.length) {
+      setProducts(initialProducts)
+      setLoading(false)
+      setError(null)
+      return
+    }
+
     const fetchProducts = async () => {
       try {
         setLoading(true);
@@ -123,7 +134,7 @@ const NewArrival = () => {
     };
 
     fetchProducts();
-  }, []);
+  }, [initialProducts]);
 
   if (loading) {
     return (
