@@ -25,6 +25,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const parsedBidAmount = Number(bidAmount)
+
+    if (!Number.isInteger(parsedBidAmount) || parsedBidAmount <= 0) {
+      return NextResponse.json(
+        { error: 'Bid amount must be a whole number greater than 0' },
+        { status: 400 }
+      )
+    }
+
     
     const product = await Product.findById(productId)
     
@@ -78,7 +87,7 @@ export async function POST(request: NextRequest) {
 
     // Check if bid is higher than current bid
     const currentBid = product.currentBid || product.startingBid || 0
-    if (bidAmount <= currentBid) {
+    if (parsedBidAmount <= currentBid) {
       return NextResponse.json(
         { error: `Bid must be higher than current bid of Rs. ${currentBid}` },
         { status: 400 }
@@ -98,13 +107,13 @@ export async function POST(request: NextRequest) {
       productId,
       userId: session.user.id,
       userEmail: session.user.email,
-      bidAmount,
+      bidAmount: parsedBidAmount,
       isWinning: true,
     })
 
     // Update product with new highest bid
     await Product.findByIdAndUpdate(productId, {
-      currentBid: bidAmount,
+      currentBid: parsedBidAmount,
       highestBidder: session.user.id,
       highestBidderEmail: session.user.email,
       $inc: { totalBids: 1 }

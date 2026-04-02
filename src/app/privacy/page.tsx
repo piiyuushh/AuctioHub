@@ -1,9 +1,12 @@
-import React from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
 
+export const revalidate = 86400
+
 export default function PrivacyPolicy() {
+  const lastUpdated = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+
   return (
     <>
       <Header />
@@ -15,7 +18,7 @@ export default function PrivacyPolicy() {
               Privacy Policy
             </h1>
             <p className="text-[#929AAB] text-lg">
-              Last updated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+              Last updated: {lastUpdated}
             </p>
           </div>
 

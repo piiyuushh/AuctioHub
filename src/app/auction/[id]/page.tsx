@@ -50,10 +50,46 @@ export default function AuctionSessionPage() {
   const [sending, setSending] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState("");
   const [showWinner, setShowWinner] = useState(false);
-  const [bidIncrement, setBidIncrement] = useState("10");
+  const [bidAmount, setBidAmount] = useState("");
   const [alertDialog, setAlertDialog] = useState({ open: false, title: '', message: '', variant: 'default' as 'default' | 'destructive' | 'success' });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const lastMessageCreatedAtRef = useRef<string | null>(null);
+  const seenMessageIdsRef = useRef<Set<string>>(new Set());
+
+  const appendUniqueMessages = (incomingMessages: ChatMessage[]) => {
+    if (!incomingMessages.length) return;
+
+    setMessages((prev) => {
+      const next = [...prev];
+
+      for (const message of incomingMessages) {
+        if (!message?._id || seenMessageIdsRef.current.has(message._id)) {
+          continue;
+        }
+
+        seenMessageIdsRef.current.add(message._id);
+        next.push(message);
+      }
+
+      if (!next.length) return next;
+
+      // Keep local ordering stable even if poll responses arrive out of order.
+      next.sort(
+        (a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      );
+
+      lastMessageCreatedAtRef.current = next[next.length - 1].createdAt;
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    setMessages([]);
+    seenMessageIdsRef.current = new Set();
+    lastMessageCreatedAtRef.current = null;
+  }, [productId]);
 
   useEffect(() => {
     if (!session) {
@@ -132,10 +168,7 @@ export default function AuctionSessionPage() {
 
   const fetchMessages = async () => {
     try {
-      const lastMessageTime =
-        messages.length > 0
-          ? messages[messages.length - 1].createdAt
-          : undefined;
+      const lastMessageTime = lastMessageCreatedAtRef.current || undefined;
       const url = lastMessageTime
         ? `/api/auction/${productId}/chat?after=${lastMessageTime}`
         : `/api/auction/${productId}/chat`;
@@ -143,7 +176,7 @@ export default function AuctionSessionPage() {
       if (response.ok) {
         const newMessages = await response.json();
         if (newMessages.length > 0) {
-          setMessages((prev) => [...prev, ...newMessages]);
+          appendUniqueMessages(newMessages);
         }
       }
     } catch (error) {
@@ -154,19 +187,38 @@ export default function AuctionSessionPage() {
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || sending) return;
+
+    const messageToSend = newMessage.trim();
     setSending(true);
+
     try {
       const response = await fetch(`/api/auction/${productId}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: newMessage }),
+        body: JSON.stringify({ message: messageToSend }),
       });
+
       if (response.ok) {
+        const sentMessage: ChatMessage = await response.json();
         setNewMessage("");
-        await fetchMessages();
+        appendUniqueMessages([sentMessage]);
+      } else {
+        const data = await response.json().catch(() => ({}));
+        setAlertDialog({
+          open: true,
+          title: 'Message Failed',
+          message: data.error || 'Failed to send message',
+          variant: 'destructive',
+        });
       }
     } catch (error) {
       console.error("Error sending message:", error);
+      setAlertDialog({
+        open: true,
+        title: 'Message Failed',
+        message: 'Error sending message',
+        variant: 'destructive',
+      });
     } finally {
       setSending(false);
     }
@@ -174,21 +226,32 @@ export default function AuctionSessionPage() {
 
   const handleQuickBid = async () => {
     if (!product) return;
-    const increment = Number(bidIncrement);
-    if (!Number.isFinite(increment) || increment <= 0) {
-      setAlertDialog({ open: true, title: 'Invalid Amount', message: 'Please enter a valid amount greater than 0', variant: 'default' });
+    const parsedBidAmount = Number(bidAmount);
+    const minimumBid = (product.currentBid || product.startingBid || 0) + 1;
+
+    if (!Number.isInteger(parsedBidAmount) || parsedBidAmount <= 0) {
+      setAlertDialog({ open: true, title: 'Invalid Amount', message: 'Please enter a whole number bid amount', variant: 'default' });
       return;
     }
-    const bidAmount =
-      (product.currentBid || product.startingBid || 0) + increment;
+
+    if (parsedBidAmount < minimumBid) {
+      setAlertDialog({
+        open: true,
+        title: 'Bid Too Low',
+        message: `Your bid must be at least Rs. ${minimumBid.toLocaleString()}`,
+        variant: 'default',
+      });
+      return;
+    }
+
     try {
       const response = await fetch("/api/products/bid", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productId, bidAmount }),
+        body: JSON.stringify({ productId, bidAmount: parsedBidAmount }),
       });
       if (response.ok) {
-        setBidIncrement("10");
+        setBidAmount("");
         await fetchProduct();
       } else {
         const data = await response.json();
@@ -253,7 +316,8 @@ export default function AuctionSessionPage() {
   const isSeller = session?.user?.email === product.userEmail;
   const currentBidDisplay =
     product.currentBid || product.startingBid || 0;
-  const nextBid = currentBidDisplay + Number(bidIncrement || 0);
+  const minimumBid = currentBidDisplay + 1;
+  const bidPreview = Number(bidAmount);
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
@@ -503,11 +567,11 @@ export default function AuctionSessionPage() {
                 <div className="flex gap-2">
                   <input
                     type="number"
-                    min="1"
+                    min={minimumBid}
                     step="1"
-                    value={bidIncrement}
-                    onChange={(e) => setBidIncrement(e.target.value)}
-                    placeholder="Amount to add"
+                    value={bidAmount}
+                    onChange={(e) => setBidAmount(e.target.value)}
+                    placeholder="Enter bid amount"
                     className="flex-1 text-sm px-4 py-2.5 border border-neutral-300 bg-white text-black outline-none focus:border-black transition-colors"
                   />
                   <button
@@ -519,13 +583,13 @@ export default function AuctionSessionPage() {
                   </button>
                 </div>
                 <p className="text-[10px] text-neutral-400 tracking-[0.04em]">
-                  Current Rs.{currentBidDisplay.toLocaleString()} → Next Rs.{" "}
-                  <span className="font-medium text-black">
-                    {Number.isFinite(nextBid)
-                      ? nextBid.toLocaleString()
-                      : "—"}
-                  </span>
+                  Minimum bid Rs.{minimumBid.toLocaleString()} · Enter the full bid amount
                 </p>
+                {Number.isInteger(bidPreview) && bidPreview > 0 ? (
+                  <p className="text-[10px] text-neutral-500 tracking-[0.04em]">
+                    Your bid: Rs. {bidPreview.toLocaleString()}
+                  </p>
+                ) : null}
               </div>
             )}
 

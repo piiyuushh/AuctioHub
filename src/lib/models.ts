@@ -1675,7 +1675,23 @@ export const ChatMessage = {
       paramCount++
     }
 
+    const createdAtAfter =
+      query.afterCreatedAt ||
+      query.createdAt?.$gt ||
+      null
+
+    if (createdAtAfter) {
+      sql += ` AND created_at > $${paramCount}`
+      params.push(createdAtAfter)
+      paramCount++
+    }
+
     sql += ' ORDER BY created_at ASC'
+
+    if (query.limit && Number.isInteger(query.limit) && query.limit > 0) {
+      sql += ` LIMIT $${paramCount}`
+      params.push(query.limit)
+    }
 
     const result = await pool.query(sql, params)
     return result.rows.map(row => ({
