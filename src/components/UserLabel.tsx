@@ -1,20 +1,15 @@
 "use client"
 
 import { useEffect, useState } from 'react'
-import { useUser } from '@clerk/nextjs'
+import { useSession } from 'next-auth/react'
 
 export function UserLabel() {
-  const { isSignedIn, isLoaded } = useUser()
+  const { status } = useSession()
   const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const checkAdminStatus = async () => {
-      if (!isSignedIn || !isLoaded) {
-        setLoading(false)
-        return
-      }
-
       try {
         const response = await fetch('/api/admin/check')
         if (response.ok) {
@@ -28,11 +23,15 @@ export function UserLabel() {
       }
     }
 
-    checkAdminStatus()
-  }, [isSignedIn, isLoaded])
+    if (status === 'authenticated') {
+      checkAdminStatus()
+    } else {
+      setLoading(false)
+    }
+  }, [status])
 
   // Don't show anything if loading, not signed in, or user is not an admin
-  if (loading || !isLoaded || !isSignedIn || !isAdmin) {
+  if (loading || status !== 'authenticated' || !isAdmin) {
     return null
   }
 
