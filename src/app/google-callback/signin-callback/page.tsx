@@ -10,7 +10,7 @@ export default function SignInCallbackPage() {
   const [progress, setProgress] = useState(0);
   
   // DB-driven check: user is first-time login if isFirstAppLogin is true
-  const isFirstLogin = (session?.user as any)?.isFirstAppLogin ?? false;
+  const isFirstLogin = session?.user?.isFirstAppLogin ?? false;
 
   useEffect(() => {
     if (status === "authenticated") {

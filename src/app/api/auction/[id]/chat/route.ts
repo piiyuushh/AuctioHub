@@ -14,7 +14,7 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const after = searchParams.get("after");
 
-    const query: any = { productId, limit: 100 };
+    const query: { productId: string; limit: number; afterCreatedAt?: Date } = { productId, limit: 100 };
 
     // Incremental polling: only return messages newer than the last client cursor.
     if (after) {

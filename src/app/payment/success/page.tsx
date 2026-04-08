@@ -1,25 +1,29 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { CheckCircleIcon, HomeIcon, ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { Header } from "@/components/Header";
 import Footer from "@/components/Footer";
 
 export default function PaymentSuccessPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const sessionId = searchParams.get("session_id");
-  const productId = searchParams.get("product_id");
-  const paymentType = searchParams.get("payment_type") || "full";
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [productId, setProductId] = useState<string | null>(null);
+  const [paymentType, setPaymentType] = useState("full");
   const [loading, setLoading] = useState(true);
-  const [processing, setProcessing] = useState(false);
 
   const isPenalty = paymentType === "penalty";
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setSessionId(params.get("session_id"));
+    setProductId(params.get("product_id"));
+    setPaymentType(params.get("payment_type") || "full");
+  }, []);
+
+  useEffect(() => {
     const processPayment = async () => {
       if (productId && paymentType) {
-        setProcessing(true);
         try {
           // Call API to update product status
           const response = await fetch("/api/payment/process-completion", {
@@ -38,8 +42,6 @@ export default function PaymentSuccessPage() {
           }
         } catch (error) {
           console.error("Error processing payment:", error);
-        } finally {
-          setProcessing(false);
         }
       }
       setLoading(false);
@@ -133,7 +135,7 @@ export default function PaymentSuccessPage() {
             ) : (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-8 text-left">
                 <p className="text-sm text-blue-800">
-                  <strong>What's Next?</strong> You will receive a confirmation email shortly. 
+                  <strong>What&apos;s Next?</strong> You will receive a confirmation email shortly. 
                   The seller will be notified to prepare your item for delivery.
                 </p>
               </div>

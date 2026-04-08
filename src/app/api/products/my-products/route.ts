@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { pool } from '@/lib/database'
 import { Product } from '@/lib/models'
 
 // GET - Fetch current user's products

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/admin'
-import { pool } from '@/lib/database'
 import { User } from '@/lib/models'
 
 // GET - Fetch all users

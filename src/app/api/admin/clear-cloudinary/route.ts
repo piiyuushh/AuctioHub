@@ -2,6 +2,13 @@ import { NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/admin'
 import { v2 as cloudinary } from 'cloudinary'
 
+type CloudinaryResource = {
+  public_id: string
+  secure_url: string
+  created_at: string
+  bytes: number
+}
+
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -32,7 +39,8 @@ export async function DELETE() {
     console.log(`Found ${result.resources.length} images to delete`)
 
     // Delete each image
-    const publicIds = result.resources.map((resource: any) => resource.public_id)
+    const resources = (result.resources || []) as CloudinaryResource[]
+    const publicIds = resources.map((resource) => resource.public_id)
     const deleteResult = await cloudinary.api.delete_resources(publicIds, {
       resource_type: 'image',
     })
@@ -49,12 +57,12 @@ export async function DELETE() {
       deleted: deletedCount,
       details: deleteResult,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error clearing Cloudinary:', error)
     return NextResponse.json(
       {
         error: 'Failed to clear Cloudinary images',
-        details: error.message,
+        details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     )
@@ -75,19 +83,19 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       count: result.resources.length,
-      images: result.resources.map((r: any) => ({
+      images: ((result.resources || []) as CloudinaryResource[]).map((r) => ({
         public_id: r.public_id,
         url: r.secure_url,
         created_at: r.created_at,
         bytes: r.bytes,
       })),
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error listing Cloudinary images:', error)
     return NextResponse.json(
       {
         error: 'Failed to list Cloudinary images',
-        details: error.message,
+        details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     )

@@ -5,9 +5,8 @@ import { useSession } from "next-auth/react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useRouter } from "next/navigation";
-import { FaGavel, FaListAlt, FaTrophy, FaChartLine, FaDollarSign, FaClock, FaUserEdit, FaFilePdf } from "react-icons/fa";
+import { FaGavel, FaListAlt, FaTrophy, FaChartLine, FaDollarSign, FaClock, FaUserEdit } from "react-icons/fa";
 import Image from "next/image";
-import { exportDashboardPdf } from "@/lib/pdf-export";
 import { AlertDialog } from "@/components/ui/AlertDialog";
 
 interface DashboardStats {
@@ -38,7 +37,6 @@ export default function UserDashboard() {
   const [loadingData, setLoadingData] = useState(true)
   const [dashboardError, setDashboardError] = useState<string | null>(null)
   const [isEditingProfile, setIsEditingProfile] = useState(false)
-  const [isExporting, setIsExporting] = useState(false)
   const [savingProfile, setSavingProfile] = useState(false)
   const [profileMessage, setProfileMessage] = useState<string | null>(null)
   const [profileError, setProfileError] = useState<string | null>(null)
@@ -48,7 +46,6 @@ export default function UserDashboard() {
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null)
   const [isDraggingImage, setIsDraggingImage] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
-  const reportRootRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     if (!session?.user?.email) return
@@ -207,38 +204,6 @@ export default function UserDashboard() {
     }
   }
 
-  const handleExport = async () => {
-    if (!reportRootRef.current || !stats) {
-      return
-    }
-
-    setIsExporting(true)
-
-    try {
-      await exportDashboardPdf({
-        filePrefix: "user-report",
-        rootElement: reportRootRef.current,
-        cover: {
-          title: "User Report",
-          subtitle: "Personal activity summary",
-          generatedAt: new Date(),
-          identityLines: [
-            `User: ${user.name}`,
-            `Email: ${user.email || "N/A"}`,
-            `Member since: ${new Date(user.createdAt || Date.now()).toLocaleDateString()}`,
-            `Scope: Full dashboard`,
-          ],
-        },
-        sections: [{ element: reportRootRef.current }],
-      })
-    } catch (error) {
-      console.error("User report export failed:", error)
-      setAlertDialog({ open: true, title: 'Export Failed', message: 'Failed to export report. Please try again.', variant: 'destructive' })
-    } finally {
-      setIsExporting(false)
-    }
-  }
-
   if (status === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F7F7F7]">
@@ -301,7 +266,7 @@ export default function UserDashboard() {
       <Header />
       
       <main className="flex-1 w-full xl:px-8 2xl:px-0 2xl:max-w-[1800px] 2xl:mx-auto py-8 px-4">
-        <div ref={reportRootRef} className="max-w-7xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           {/* Page Header */}
           <div className="mb-8 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div>

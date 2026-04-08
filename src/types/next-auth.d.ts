@@ -7,6 +7,7 @@ declare module "next-auth" {
       id: string;
       googleId: string;
       role: string;
+      isFirstAppLogin?: boolean;
     } & DefaultSession["user"];
   }
 
@@ -14,6 +15,7 @@ declare module "next-auth" {
     id: string;
     googleId?: string;
     role?: string;
+    isFirstAppLogin?: boolean;
   }
 }
 
@@ -22,5 +24,6 @@ declare module "next-auth/jwt" {
     id?: string;
     googleId?: string;
     role?: string;
+    isFirstAppLogin?: boolean;
   }
 }

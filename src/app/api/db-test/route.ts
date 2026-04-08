@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import { pool } from '@/lib/database'
 import { User, CarouselImage } from '@/lib/models'
 
 export async function GET() {

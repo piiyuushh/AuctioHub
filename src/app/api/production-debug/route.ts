@@ -63,8 +63,7 @@ export async function GET() {
         connected: true,
         error: null,
         carouselCount: count,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        sampleImages: images.map((img: any) => ({
+        sampleImages: images.map((img) => ({
           id: img._id?.toString() || 'unknown',
           url: img.url || 'unknown',
           isActive: img.isActive || false,

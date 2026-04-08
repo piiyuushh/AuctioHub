@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { pool } from '@/lib/database'
 import { User } from '@/lib/models'
 import mongoose from 'mongoose'
 
@@ -59,9 +58,10 @@ export async function POST() {
       await usersCollection.dropIndex('clerkId_1')
       console.log('Dropped clerkId_1 index')
       droppedIndexes.push('clerkId_1')
-    } catch (e: any) {
-      console.log('clerkId_1 index does not exist or already dropped:', e.message)
-      errors.push(`clerkId_1: ${e.message}`)
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Unknown error'
+      console.log('clerkId_1 index does not exist or already dropped:', message)
+      errors.push(`clerkId_1: ${message}`)
     }
     
     // Drop the googleId index if it exists (to recreate as sparse)
@@ -69,9 +69,10 @@ export async function POST() {
       await usersCollection.dropIndex('googleId_1')
       console.log('Dropped googleId_1 index')
       droppedIndexes.push('googleId_1')
-    } catch (e: any) {
-      console.log('googleId_1 index does not exist or already dropped:', e.message)
-      errors.push(`googleId_1: ${e.message}`)
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Unknown error'
+      console.log('googleId_1 index does not exist or already dropped:', message)
+      errors.push(`googleId_1: ${message}`)
     }
     
     // Recreate the googleId index as sparse (allows multiple null values)
@@ -93,11 +94,11 @@ export async function POST() {
       currentIndexes: newIndexes
     })
     
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Fix indexes error:', error)
     return NextResponse.json({
       error: 'Failed to fix indexes',
-      details: error.message
+      details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 })
   }
 }
@@ -136,11 +137,11 @@ export async function GET() {
       }))
     })
     
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get indexes error:', error)
     return NextResponse.json({
       error: 'Failed to get indexes',
-      details: error.message
+      details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 })
   }
 }

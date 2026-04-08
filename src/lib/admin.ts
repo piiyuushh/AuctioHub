@@ -1,6 +1,5 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from './auth'
-import { pool } from './database'
 import { User } from './models'
 
 export async function isAdmin() {

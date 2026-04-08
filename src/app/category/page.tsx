@@ -215,15 +215,16 @@ export default function CategoryPage() {
       const method = editingProduct ? "PUT" : "POST";
       
       // Convert minutes to hours for API
+      const { auctionDurationMinutes, ...baseFormData } = formData;
       const bodyData = {
-        ...formData,
-        auctionDurationHours: formData.auctionDurationMinutes / 60,
+        ...baseFormData,
+        auctionDurationHours: auctionDurationMinutes / 60,
       };
-      delete (bodyData as any).auctionDurationMinutes;
+      const payloadData = { ...bodyData };
       
       const body = editingProduct
-        ? { ...bodyData, productId: editingProduct._id }
-        : bodyData;
+        ? { ...payloadData, productId: editingProduct._id }
+        : payloadData;
 
       const response = await fetch(url, {
         method,

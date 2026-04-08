@@ -1,5 +1,7 @@
 import { pool } from './database'
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 // TypeScript Interfaces
 export interface IUser {
   _id?: string
