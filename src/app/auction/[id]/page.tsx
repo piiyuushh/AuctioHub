@@ -107,9 +107,41 @@ export default function AuctionSessionPage() {
           return;
         }
 
-        await fetchProduct();
-        await fetchMessages();
-        messageInterval = setInterval(fetchMessages, 2000);
+        const productResponse = await fetch(`/api/products?id=${productId}`);
+        if (productResponse.ok) {
+          const productData = await productResponse.json();
+          setProduct(productData);
+          if (
+            productData.auctionStatus === "ended" &&
+            productData.highestBidderEmail === session?.user?.email
+          ) {
+            setShowWinner(true);
+          }
+        } else {
+          router.push("/category");
+          return;
+        }
+
+        const fetchSessionMessages = async () => {
+          try {
+            const lastMessageTime = lastMessageCreatedAtRef.current || undefined;
+            const url = lastMessageTime
+              ? `/api/auction/${productId}/chat?after=${lastMessageTime}`
+              : `/api/auction/${productId}/chat`;
+            const response = await fetch(url);
+            if (response.ok) {
+              const newMessages = await response.json();
+              if (newMessages.length > 0) {
+                appendUniqueMessages(newMessages);
+              }
+            }
+          } catch (error) {
+            console.error("Error fetching messages:", error);
+          }
+        };
+
+        await fetchSessionMessages();
+        messageInterval = setInterval(fetchSessionMessages, 2000);
       } catch (error) {
         console.error("Error initializing auction session:", error);
         router.push("/category");
@@ -123,22 +155,50 @@ export default function AuctionSessionPage() {
         clearInterval(messageInterval);
       }
     };
-  }, [session, productId]);
+  }, [session, productId, router]);
 
   useEffect(() => {
     if (!product) return;
+
+    const computeTimeRemaining = () => {
+      if (!product.auctionEndTime) return "N/A";
+      const now = new Date().getTime();
+      const end = new Date(product.auctionEndTime).getTime();
+      const diff = end - now;
+      if (diff <= 0) return "Ended";
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor(
+        (diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+      );
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      if (days > 0) return `${days}d ${hours}h ${minutes}m ${seconds}s`;
+      if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
+      if (minutes > 0) return `${minutes}m ${seconds}s`;
+      return `${seconds}s`;
+    };
+
     const timer = setInterval(() => {
-      const remaining = calculateTimeRemaining();
+      const remaining = computeTimeRemaining();
       setTimeRemaining(remaining);
       if (remaining === "Ended" && !showWinner) {
-        fetchProduct();
-        if (product.highestBidderEmail === session?.user?.email) {
-          setShowWinner(true);
-        }
+        void (async () => {
+          try {
+            const response = await fetch(`/api/products?id=${productId}`);
+            if (!response.ok) return;
+            const data = await response.json();
+            setProduct(data);
+            if (data.highestBidderEmail === session?.user?.email) {
+              setShowWinner(true);
+            }
+          } catch (error) {
+            console.error("Error fetching product:", error);
+          }
+        })();
       }
     }, 1000);
     return () => clearInterval(timer);
-  }, [product, session]);
+  }, [product, productId, session?.user?.email, showWinner]);
 
   useEffect(() => {
     scrollToBottom();
@@ -163,24 +223,6 @@ export default function AuctionSessionPage() {
       console.error("Error fetching product:", error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchMessages = async () => {
-    try {
-      const lastMessageTime = lastMessageCreatedAtRef.current || undefined;
-      const url = lastMessageTime
-        ? `/api/auction/${productId}/chat?after=${lastMessageTime}`
-        : `/api/auction/${productId}/chat`;
-      const response = await fetch(url);
-      if (response.ok) {
-        const newMessages = await response.json();
-        if (newMessages.length > 0) {
-          appendUniqueMessages(newMessages);
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching messages:", error);
     }
   };
 
@@ -261,24 +303,6 @@ export default function AuctionSessionPage() {
       console.error("Error placing bid:", error);
       setAlertDialog({ open: true, title: 'Error', message: "Error placing bid", variant: 'destructive' });
     }
-  };
-
-  const calculateTimeRemaining = () => {
-    if (!product?.auctionEndTime) return "N/A";
-    const now = new Date().getTime();
-    const end = new Date(product.auctionEndTime).getTime();
-    const diff = end - now;
-    if (diff <= 0) return "Ended";
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor(
-      (diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
-    );
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-    if (days > 0) return `${days}d ${hours}h ${minutes}m ${seconds}s`;
-    if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
-    if (minutes > 0) return `${minutes}m ${seconds}s`;
-    return `${seconds}s`;
   };
 
   const scrollToBottom = () => {

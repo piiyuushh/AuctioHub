@@ -46,7 +46,7 @@ export default function NotFound() {
             Auction Not Found
           </h2>
           <p className="text-gray-600 mt-2 text-center max-w-md mx-auto text-lg">
-            This item has been removed from bidding or the page you're looking for doesn't exist.
+            This item has been removed from bidding or the page you&apos;re looking for doesn&apos;t exist.
           </p>
 
           {/* Buttons */}

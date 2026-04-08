@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { FiClock, FiRefreshCw, FiSlash, FiUsers } from 'react-icons/fi'
 import { AlertDialog } from '@/components/ui/AlertDialog'
 
@@ -82,28 +82,15 @@ export default function AuctionManager() {
     [auctions, selectedAuctionId]
   )
 
-  useEffect(() => {
-    void fetchAuctions()
+  const showError = useCallback((text: string) => {
+    setMessage({ type: 'error', text })
   }, [])
 
-  useEffect(() => {
-    if (!selectedAuctionId) {
-      setBiddersPayload(null)
-      return
-    }
-
-    void fetchBidders(selectedAuctionId)
-  }, [selectedAuctionId])
-
-  const showError = (text: string) => {
-    setMessage({ type: 'error', text })
-  }
-
-  const showSuccess = (text: string) => {
+  const showSuccess = useCallback((text: string) => {
     setMessage({ type: 'success', text })
-  }
+  }, [])
 
-  const fetchAuctions = async () => {
+  const fetchAuctions = useCallback(async () => {
     try {
       setLoadingAuctions(true)
       const response = await fetch('/api/admin/auction')
@@ -130,9 +117,9 @@ export default function AuctionManager() {
     } finally {
       setLoadingAuctions(false)
     }
-  }
+  }, [selectedAuctionId, showError])
 
-  const fetchBidders = async (auctionId: string) => {
+  const fetchBidders = useCallback(async (auctionId: string) => {
     try {
       setLoadingBidders(true)
       const response = await fetch(`/api/admin/auction/${auctionId}/bidders`)
@@ -149,7 +136,20 @@ export default function AuctionManager() {
     } finally {
       setLoadingBidders(false)
     }
-  }
+  }, [showError])
+
+  useEffect(() => {
+    void fetchAuctions()
+  }, [fetchAuctions])
+
+  useEffect(() => {
+    if (!selectedAuctionId) {
+      setBiddersPayload(null)
+      return
+    }
+
+    void fetchBidders(selectedAuctionId)
+  }, [selectedAuctionId, fetchBidders])
 
   const refreshSelectedAuction = async () => {
     if (!selectedAuctionId) return

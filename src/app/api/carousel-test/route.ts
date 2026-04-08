@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import { pool } from '@/lib/database'
 import { CarouselImage } from '@/lib/models'
 
 export async function GET() {
@@ -28,7 +27,7 @@ export async function GET() {
       activeImages: images,
       activeCount: images.length,
       totalImages: allImages.length,
-      allImages: sortedAllImages.map((img: any) => ({
+      allImages: sortedAllImages.map((img) => ({
         url: img.url.substring(0, 50) + '...',
         altText: img.altText,
         order: img.order,

@@ -44,50 +44,48 @@ export default function PaymentPage() {
       router.push("/sign-in");
       return;
     }
-    fetchProduct();
-  }, [session, productId]);
+    void (async () => {
+      try {
+        const response = await fetch(`/api/products?id=${productId}`);
+        if (response.ok) {
+          const data = await response.json();
 
-  const fetchProduct = async () => {
-    try {
-      const response = await fetch(`/api/products?id=${productId}`);
-      if (response.ok) {
-        const data = await response.json();
+          // Verify user is the winner
+          if (data.highestBidderEmail !== session?.user?.email) {
+            setAlertDialog({
+              open: true,
+              title: "Payment Access Denied",
+              message: "You are not the winner of this auction, so payment is not available.",
+              variant: "destructive",
+            });
+            setTimeout(() => router.push("/category"), 1400);
+            return;
+          }
 
-        // Verify user is the winner
-        if (data.highestBidderEmail !== session?.user?.email) {
+          setProduct(data);
+        } else {
           setAlertDialog({
             open: true,
-            title: "Payment Access Denied",
-            message: "You are not the winner of this auction, so payment is not available.",
+            title: "Product Not Available",
+            message: "This auction item is no longer available for payment.",
             variant: "destructive",
           });
           setTimeout(() => router.push("/category"), 1400);
-          return;
         }
-
-        setProduct(data);
-      } else {
+      } catch (error) {
+        console.error("Error fetching product:", error);
         setAlertDialog({
           open: true,
-          title: "Product Not Available",
-          message: "This auction item is no longer available for payment.",
+          title: "Error",
+          message: "Unable to load auction payment details.",
           variant: "destructive",
         });
         setTimeout(() => router.push("/category"), 1400);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Error fetching product:", error);
-      setAlertDialog({
-        open: true,
-        title: "Error",
-        message: "Unable to load auction payment details.",
-        variant: "destructive",
-      });
-      setTimeout(() => router.push("/category"), 1400);
-    } finally {
-      setLoading(false);
-    }
-  };
+    })();
+  }, [session, productId, router]);
 
   const finalizePayment = async (type: "full" | "penalty") => {
     await fetch("/api/payment/process-completion", {
@@ -326,7 +324,7 @@ export default function PaymentPage() {
             {selectedMethod === "card" && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                 <p className="text-sm text-blue-800">
-                  <strong>Secure Stripe Payment:</strong> You will be redirected to Stripe's secure checkout page to complete your payment.
+                  <strong>Secure Stripe Payment:</strong> You will be redirected to Stripe&apos;s secure checkout page to complete your payment.
                 </p>
               </div>
             )}

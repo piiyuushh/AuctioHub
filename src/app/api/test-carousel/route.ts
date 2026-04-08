@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import { pool } from '@/lib/database'
 import { CarouselImage } from '@/lib/models'
 import { isAdmin, requireAdmin } from '@/lib/admin'
 

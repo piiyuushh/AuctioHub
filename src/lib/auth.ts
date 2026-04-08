@@ -63,16 +63,21 @@ export const authOptions: NextAuthOptions = {
           }
           
           // Store isFirstAppLogin in user object for JWT callback
-          (user as any).isFirstAppLogin = isFirstAppLogin;
+          user.isFirstAppLogin = isFirstAppLogin;
           
           return true;
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error("Error during sign in:", error);
-          console.error("Error code:", error.code);
-          console.error("Error message:", error.message);
+          const errorCode =
+            typeof error === 'object' && error !== null && 'code' in error
+              ? String((error as { code?: string }).code)
+              : undefined;
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          console.error("Error code:", errorCode);
+          console.error("Error message:", errorMessage);
           
           // Handle duplicate key error - try to clean up and retry
-          if (error.code === '23505') { // PostgreSQL unique violation
+          if (errorCode === '23505') { // PostgreSQL unique violation
             console.log("Duplicate key error, attempting to fix...");
             try {
               // If there's a duplicate googleId, update the existing record
@@ -116,11 +121,11 @@ export const authOptions: NextAuthOptions = {
             token.googleId = dbUser.googleId;
             token.role = dbUser.role;
             // Preserve the isFirstAppLogin flag from signIn callback
-            token.isFirstAppLogin = (user as any).isFirstAppLogin ?? false;
+            token.isFirstAppLogin = user.isFirstAppLogin ?? false;
           } else {
             // User might have just been created, set defaults
             token.role = 'USER';
-            token.isFirstAppLogin = (user as any).isFirstAppLogin ?? false;
+            token.isFirstAppLogin = user.isFirstAppLogin ?? false;
           }
         } catch (error) {
           console.error("Error fetching user in JWT callback:", error);
@@ -148,7 +153,7 @@ export const authOptions: NextAuthOptions = {
         session.user.googleId = token.googleId as string;
         session.user.role = token.role as string;
         // Pass isFirstAppLogin flag to session for frontend use
-        (session.user as any).isFirstAppLogin = (token.isFirstAppLogin as boolean) ?? false;
+        session.user.isFirstAppLogin = token.isFirstAppLogin ?? false;
       }
       return session;
     },

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { Product } from '@/lib/models'
+import { Product, type IProduct } from '@/lib/models'
 import { finalizeAuctionIfExpired, finalizeExpiredAuctionsForList } from '@/lib/auction-finalization'
 import { emitAuctionEnded, emitAuctionStarted, emitAuctionWon } from '@/lib/notifications'
 
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     }
 
     
-    const productData: any = {
+    const productData: Partial<IProduct> = {
       userId: session.user.id,
       userEmail: session.user.email,
       title,
@@ -165,7 +165,7 @@ export async function PUT(request: NextRequest) {
     const wasActiveAuction = product.hasAuction && product.auctionStatus === 'active'
 
     // Update other fields
-    const updateData: any = {}
+    const updateData: Partial<IProduct> = {}
     if (title) updateData.title = title
     if (description) updateData.description = description
     if (imageUrl) updateData.imageUrl = imageUrl

@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { pool } from '@/lib/database'
 import { User } from '@/lib/models'
 
 // This endpoint helps set up the initial admin user
@@ -26,11 +25,11 @@ export async function GET() {
     const isInAdminList = adminEmails.includes(userEmail)
     
     // Find current user in database
-    let user = await User.findOne({ email: userEmail })
+    const user = await User.findOne({ email: userEmail })
     
     // Get all users for reporting
     const allUsers = await User.find({})
-    const adminUsers = allUsers.filter((u: any) => u.role === 'ADMIN')
+    const adminUsers = allUsers.filter((u) => u.role === 'ADMIN')
     
     // If user doesn't exist but is in admin list, something is wrong
     if (!user) {
@@ -82,7 +81,7 @@ export async function GET() {
       database: {
         totalUsers: allUsers.length,
         adminCount: adminUsers.length,
-        users: allUsers.map((u: any) => ({
+        users: allUsers.map((u) => ({
           email: u.email,
           name: u.name,
           role: u.role,

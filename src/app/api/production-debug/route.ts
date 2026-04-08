@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { pool } from '@/lib/database'
 import { CarouselImage } from '@/lib/models'
 import { isAdmin } from '@/lib/admin'
 
@@ -64,8 +63,7 @@ export async function GET() {
         connected: true,
         error: null,
         carouselCount: count,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        sampleImages: images.map((img: any) => ({
+        sampleImages: images.map((img) => ({
           id: img._id?.toString() || 'unknown',
           url: img.url || 'unknown',
           isActive: img.isActive || false,

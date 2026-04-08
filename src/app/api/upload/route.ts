@@ -9,6 +9,15 @@ export const maxDuration = 60
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
 const MAX_IMAGE_SIZE_BYTES = 8 * 1024 * 1024
 
+type CloudinaryUploadResult = {
+  secure_url: string
+  public_id: string
+  width: number
+  height: number
+  format: string
+  bytes: number
+}
+
 // Configure Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -66,7 +75,7 @@ export async function POST(request: NextRequest) {
       const timestamp = Date.now()
       
       // Upload to Cloudinary
-      const result = await new Promise((resolve, reject) => {
+      const result = await new Promise<CloudinaryUploadResult>((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
           {
             folder: 'tokari-products',
@@ -82,8 +91,10 @@ export async function POST(request: NextRequest) {
             if (error) {
               console.error('Cloudinary upload error:', error)
               reject(error)
+            } else if (result) {
+              resolve(result as CloudinaryUploadResult)
             } else {
-              resolve(result)
+              reject(new Error('Cloudinary upload returned no result'))
             }
           }
         )
@@ -91,7 +102,7 @@ export async function POST(request: NextRequest) {
         uploadStream.end(buffer)
       })
 
-      const uploadResult = result as any
+      const uploadResult = result
 
       return NextResponse.json({
         success: true,
@@ -103,23 +114,23 @@ export async function POST(request: NextRequest) {
         size: uploadResult.bytes
       })
 
-    } catch (uploadError: any) {
+    } catch (uploadError: unknown) {
       console.error('Upload processing error:', uploadError)
       return NextResponse.json(
         { 
           error: 'Failed to upload image to Cloudinary',
-          details: uploadError.message 
+          details: uploadError instanceof Error ? uploadError.message : 'Unknown error'
         },
         { status: 500 }
       )
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Server error:', error)
     return NextResponse.json(
       { 
         error: 'Internal server error',
-        details: error.message 
+        details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     )

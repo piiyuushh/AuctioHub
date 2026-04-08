@@ -67,10 +67,6 @@ const HeroCarousel = ({ initialImages }: HeroCarouselProps) => {
     setCurrentIndex((prevIndex) => (prevIndex === images.length - 1 ? 0 : prevIndex + 1));
   }, [images.length]);
 
-  const goToPrevious = useCallback(() => {
-    setCurrentIndex((prevIndex) => (prevIndex === 0 ? images.length - 1 : prevIndex - 1));
-  }, [images.length]);
-
   const goToSlide = useCallback((index: number) => {
     setCurrentIndex(index);
   }, []);

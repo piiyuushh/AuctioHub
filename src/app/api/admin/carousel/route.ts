@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { pool } from '@/lib/database'
 import { CarouselImage } from '@/lib/models'
 import { requireAdmin } from '@/lib/admin'
 import { v2 as cloudinary } from 'cloudinary'
