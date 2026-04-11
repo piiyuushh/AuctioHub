@@ -48,6 +48,7 @@ interface Product {
   title: string;
   description: string;
   imageUrl: string;
+  category?: string;
   userEmail?: string;
   userId?: string;
   isStatic?: boolean;
@@ -63,6 +64,21 @@ interface Product {
 
 const MAX_IMAGE_SIZE_BYTES = 8 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"];
+const PRODUCT_CATEGORIES = [
+  "electronics",
+  "collectibles",
+  "luxury goods",
+  "real estate and property",
+  "furniture",
+] as const;
+
+const CATEGORY_LABELS: Record<string, string> = {
+  electronics: "Electronics",
+  collectibles: "Collectibles",
+  "luxury goods": "Luxury Goods",
+  "real estate and property": "Real Estate and Property",
+  furniture: "Furniture",
+};
 
 export default function CategoryPage() {
   const { data: session } = useSession();
@@ -76,10 +92,14 @@ export default function CategoryPage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showBidModal, setShowBidModal] = useState(false);
   const [bidAmount, setBidAmount] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     imageUrl: "",
+    category: "",
     cloudinary_public_id: "",
     hasAuction: false,
     auctionDurationMinutes: 30,
@@ -90,11 +110,19 @@ export default function CategoryPage() {
   const uploadAbortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setSearchQuery(searchInput.trim());
+    }, 250);
+
+    return () => window.clearTimeout(timeout);
+  }, [searchInput]);
+
+  useEffect(() => {
     fetchProducts();
     if (session) {
       fetchMyProducts();
     }
-  }, [session]);
+  }, [session, searchQuery, selectedCategory]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -114,7 +142,15 @@ export default function CategoryPage() {
 
   const fetchProducts = async () => {
     try {
-      const response = await fetch("/api/products");
+      const params = new URLSearchParams();
+      if (searchQuery) {
+        params.set("search", searchQuery);
+      }
+      if (selectedCategory !== "all") {
+        params.set("category", selectedCategory);
+      }
+      const queryString = params.toString();
+      const response = await fetch(`/api/products${queryString ? `?${queryString}` : ""}`);
       if (response.ok) {
         const data = await response.json();
         setProducts(data.length > 0 ? data : staticProducts);
@@ -205,7 +241,7 @@ export default function CategoryPage() {
       return;
     }
 
-    if (!formData.title || !formData.description || !formData.imageUrl) {
+    if (!formData.title || !formData.description || !formData.imageUrl || !formData.category) {
       setMessage({ type: "error", text: "All fields are required" });
       return;
     }
@@ -241,6 +277,7 @@ export default function CategoryPage() {
           title: "",
           description: "",
           imageUrl: "",
+          category: "",
           cloudinary_public_id: "",
           hasAuction: false,
           auctionDurationMinutes: 30,
@@ -393,6 +430,7 @@ export default function CategoryPage() {
       title: "",
       description: "",
       imageUrl: "",
+      category: "",
       cloudinary_public_id: "",
       hasAuction: false,
       auctionDurationMinutes: 30,
@@ -477,6 +515,28 @@ export default function CategoryPage() {
               </p>
             </div>
 
+            <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-3">
+              <input
+                type="text"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Search by product name"
+                className="md:col-span-2 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#4682A9]"
+              />
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#4682A9] bg-white"
+              >
+                <option value="all">All Categories</option>
+                {PRODUCT_CATEGORIES.map((category) => (
+                  <option key={category} value={category}>
+                    {CATEGORY_LABELS[category]}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {loading ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto"></div>
@@ -527,6 +587,11 @@ export default function CategoryPage() {
                         <h3 className="font-bold text-black text-lg mb-2 line-clamp-2">
                           {product.title}
                         </h3>
+                        <div className="mb-2">
+                          <span className="inline-flex items-center rounded-full bg-[#e8f1f7] text-[#2f617f] text-xs font-semibold px-2.5 py-1">
+                            {CATEGORY_LABELS[product.category || ""] || "Uncategorized"}
+                          </span>
+                        </div>
                         <p className="text-sm text-gray-600 line-clamp-2 mb-4">
                           {product.description}
                         </p>
@@ -572,7 +637,12 @@ export default function CategoryPage() {
                                   router.push("/sign-in");
                                   return;
                                 }
-                                router.push(`/auction/${product._id}`);
+                                const auctionProductId = product._id || product.id;
+                                if (!auctionProductId) {
+                                  setMessage({ type: "error", text: "This product cannot be opened right now." });
+                                  return;
+                                }
+                                router.push(`/auction/${auctionProductId}`);
                               }}
                               className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
                             >
@@ -678,6 +748,11 @@ export default function CategoryPage() {
                         <h3 className="font-bold text-black text-lg mb-2 line-clamp-2">
                           {product.title}
                         </h3>
+                        <div className="mb-2">
+                          <span className="inline-flex items-center rounded-full bg-[#e8f1f7] text-[#2f617f] text-xs font-semibold px-2.5 py-1">
+                            {CATEGORY_LABELS[product.category || ""] || "Uncategorized"}
+                          </span>
+                        </div>
                         <p className="text-sm text-gray-600 line-clamp-2 mb-4">
                           {product.description}
                         </p>
@@ -849,6 +924,25 @@ export default function CategoryPage() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-black resize-none"
                   required
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-black mb-2">
+                  Category *
+                </label>
+                <select
+                  value={formData.category}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, category: e.target.value }))}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-black bg-white"
+                  required
+                >
+                  <option value="">Select category</option>
+                  {PRODUCT_CATEGORIES.map((category) => (
+                    <option key={category} value={category}>
+                      {CATEGORY_LABELS[category]}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Auction Settings */}

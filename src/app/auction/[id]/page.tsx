@@ -103,6 +103,7 @@ export default function AuctionSessionPage() {
       try {
         const accessResponse = await fetch(`/api/auction/${productId}/access`);
         if (!accessResponse.ok) {
+          setLoading(false);
           router.push("/category");
           return;
         }
@@ -118,6 +119,7 @@ export default function AuctionSessionPage() {
             setShowWinner(true);
           }
         } else {
+          setLoading(false);
           router.push("/category");
           return;
         }
@@ -144,8 +146,12 @@ export default function AuctionSessionPage() {
         messageInterval = setInterval(fetchSessionMessages, 2000);
       } catch (error) {
         console.error("Error initializing auction session:", error);
+        setLoading(false);
         router.push("/category");
+        return;
       }
+
+      setLoading(false);
     };
 
     initializeAuctionSession();

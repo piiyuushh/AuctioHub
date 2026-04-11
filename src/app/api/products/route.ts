@@ -5,12 +5,22 @@ import { Product, type IProduct } from '@/lib/models'
 import { finalizeAuctionIfExpired, finalizeExpiredAuctionsForList } from '@/lib/auction-finalization'
 import { emitAuctionEnded, emitAuctionStarted, emitAuctionWon } from '@/lib/notifications'
 
+const VALID_CATEGORIES = [
+  'electronics',
+  'collectibles',
+  'luxury goods',
+  'real estate and property',
+  'furniture',
+] as const
+
 // GET - Fetch all active products (public) or single product by ID
 export async function GET(request: NextRequest) {
   try {
     
     const { searchParams } = new URL(request.url)
     const productId = searchParams.get('id')
+    const search = searchParams.get('search')?.trim() || undefined
+    const category = searchParams.get('category')?.trim() || undefined
     
     // If ID is provided, fetch single product
     if (productId) {
@@ -28,10 +38,14 @@ export async function GET(request: NextRequest) {
     }
 
     // Otherwise, fetch all products
-    let allProducts = await Product.find({ isActive: true })
+    const productQuery: Record<string, unknown> = { isActive: true }
+    if (search) productQuery.search = search
+    if (category) productQuery.category = category
+
+    let allProducts = await Product.find(productQuery)
     const finalizedAny = await finalizeExpiredAuctionsForList(allProducts, 'products:get-list')
     if (finalizedAny) {
-      allProducts = await Product.find({ isActive: true })
+      allProducts = await Product.find(productQuery)
     }
 
     const products = allProducts.sort((a, b) =>
@@ -64,15 +78,23 @@ export async function POST(request: NextRequest) {
       title, 
       description, 
       imageUrl, 
+      category,
       cloudinary_public_id,
       hasAuction,
       auctionDurationHours,
       startingBid 
     } = await request.json()
     
-    if (!title || !description || !imageUrl) {
+    if (!title || !description || !imageUrl || !category) {
       return NextResponse.json(
-        { error: 'Title, description, and image are required' },
+        { error: 'Title, description, image, and category are required' },
+        { status: 400 }
+      )
+    }
+
+    if (!VALID_CATEGORIES.includes(category)) {
+      return NextResponse.json(
+        { error: 'Invalid category value' },
         { status: 400 }
       )
     }
@@ -84,6 +106,7 @@ export async function POST(request: NextRequest) {
       title,
       description,
       imageUrl,
+      category,
       cloudinary_public_id: cloudinary_public_id || null,
       isActive: true,
       hasAuction: hasAuction || false,
@@ -131,6 +154,7 @@ export async function PUT(request: NextRequest) {
       title, 
       description, 
       imageUrl, 
+      category,
       cloudinary_public_id,
       endAuction,
       extendAuction,
@@ -169,6 +193,15 @@ export async function PUT(request: NextRequest) {
     if (title) updateData.title = title
     if (description) updateData.description = description
     if (imageUrl) updateData.imageUrl = imageUrl
+    if (category) {
+      if (!VALID_CATEGORIES.includes(category)) {
+        return NextResponse.json(
+          { error: 'Invalid category value' },
+          { status: 400 }
+        )
+      }
+      updateData.category = category
+    }
     if (cloudinary_public_id !== undefined) updateData.cloudinary_public_id = cloudinary_public_id
 
     // Handle auction end

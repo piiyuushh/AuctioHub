@@ -8,13 +8,16 @@ import CarouselManager from './CarouselManager'
 import UserManager from './UserManager'
 import NewArrivalsManager from './NewArrivalsManager'
 import AuctionManager from './AuctionManager'
+import AuctionSessions from './AuctionSessions'
 import { FiHome, FiUsers, FiImage, FiPackage, FiSettings, FiActivity, FiTrendingUp, FiShoppingBag, FiBarChart2, FiDownload } from 'react-icons/fi'
 import { exportDashboardPdf } from '@/lib/pdf-export'
 import { AlertDialog } from '@/components/ui/AlertDialog'
 
 export default function AdminDashboard() {
   const { data: session } = useSession()
+  const [dashboardSection, setDashboardSection] = useState<'stats' | 'controls'>('stats')
   const [activeTab, setActiveTab] = useState('carousel')
+  const [exportScope, setExportScope] = useState<'full' | 'stats' | 'controls'>('full')
   const [isExporting, setIsExporting] = useState(false)
   const [alertDialog, setAlertDialog] = useState({ open: false, message: '' })
   const [stats, setStats] = useState({
@@ -36,6 +39,8 @@ export default function AdminDashboard() {
     loading: true
   })
   const reportRootRef = useRef<HTMLDivElement | null>(null)
+  const statsSectionRef = useRef<HTMLDivElement | null>(null)
+  const controlsSectionRef = useRef<HTMLDivElement | null>(null)
   const router = useRouter()
   
   // Fetch real-time stats
@@ -90,13 +95,25 @@ export default function AdminDashboard() {
   }
 
   const handleExport = async () => {
-    if (!reportRootRef.current) {
+    if (!reportRootRef.current || !statsSectionRef.current || !controlsSectionRef.current) {
       return
     }
 
     setIsExporting(true)
 
     try {
+      let sections = [{ element: reportRootRef.current }]
+
+      if (exportScope === 'stats') {
+        setDashboardSection('stats')
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+        sections = [{ element: statsSectionRef.current }]
+      } else if (exportScope === 'controls') {
+        setDashboardSection('controls')
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+        sections = [{ element: controlsSectionRef.current }]
+      }
+
       await exportDashboardPdf({
         filePrefix: 'admin-report',
         rootElement: reportRootRef.current,
@@ -107,11 +124,11 @@ export default function AdminDashboard() {
           identityLines: [
             `Admin: ${session?.user?.name || 'Administrator'}`,
             `Email: ${session?.user?.email || 'N/A'}`,
-            `Scope: Full dashboard`,
+            `Scope: ${exportScope === 'full' ? 'Full dashboard' : exportScope}`,
             `Active tab: ${activeTab}`,
           ],
         },
-        sections: [{ element: reportRootRef.current }],
+        sections,
       })
     } catch (error) {
       console.error('Admin report export failed:', error)
@@ -126,7 +143,13 @@ export default function AdminDashboard() {
     { id: 'newarrivals', label: 'New Arrivals', icon: FiTrendingUp, available: true, color: 'green' },
     { id: 'users', label: 'Users', icon: FiUsers, available: true, color: 'purple' },
     { id: 'auction', label: 'Auction', icon: FiPackage, available: true, color: 'orange' },
+    { id: 'sessions', label: 'Auction Sessions', icon: FiBarChart2, available: true, color: 'cyan' },
     { id: 'settings', label: 'Settings', icon: FiSettings, available: false, color: 'gray' },
+  ]
+
+  const sectionItems = [
+    { id: 'stats' as const, label: 'Statistics', icon: FiBarChart2 },
+    { id: 'controls' as const, label: 'Admin Controls', icon: FiSettings },
   ]
 
   const primaryCards = [
@@ -185,13 +208,15 @@ export default function AdminDashboard() {
       color: 'text-indigo-700',
     }
   ]
+
+  const exportScopeLabel = exportScope === 'full' ? 'Full Report' : exportScope === 'stats' ? 'Stats Report' : 'Controls Report'
   
   return (
-    <div ref={reportRootRef} className="min-h-screen bg-gray-100">
+    <div ref={reportRootRef} className="min-h-screen bg-[radial-gradient(circle_at_10%_10%,#e8f2fa,transparent_30%),radial-gradient(circle_at_90%_0%,#f2efe4,transparent_25%),#f4f6f8]">
       {/* Header */}
-      <div className="bg-[#4682A9] shadow-lg">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+      <div className="bg-[linear-gradient(120deg,#3d7496,#4f8bb1)] shadow-lg">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-5">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
             <div className="flex items-center space-x-4">
               <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden bg-white shadow-lg">
                 <Image
@@ -205,25 +230,16 @@ export default function AdminDashboard() {
                 <h1 className="text-2xl sm:text-3xl font-bold text-white">
                   AuctioHub Admin
                 </h1>
-                <p className="text-sm text-gray-200 mt-1 flex items-center gap-2">
+                <p className="text-sm text-blue-100 mt-1 flex items-center gap-2">
                   <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                  Platform Management
+                  Platform Management Console
                 </p>
               </div>
             </div>
-            <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-3">
-              <button
-                onClick={handleExport}
-                disabled={isExporting || stats.loading}
-                className="w-full sm:w-auto px-6 py-3 bg-[#F6F4EB] border-2 border-[#4682A9] text-[#1f3f56] rounded-2xl font-semibold shadow-lg hover:bg-[#ece9dc] transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-60"
-              >
-                <FiDownload className="text-lg" />
-                {isExporting ? 'Exporting...' : 'Export Full Report'}
-              </button>
-
+            <div className="w-full lg:w-auto flex items-center gap-2">
               <button
                 onClick={navigateToHome}
-                className="w-full sm:w-auto px-6 py-3 bg-[#F6F4EB] border-2 border-[#4682A9] text-[#1f3f56] rounded-2xl font-semibold shadow-lg hover:bg-[#ece9dc] transition-all duration-300 flex items-center justify-center gap-2"
+                className="w-full cursor-pointer sm:w-auto px-5 py-2.5 bg-[#F6F4EB] border border-[#d6d2c2] text-[#1f3f56] rounded-xl font-semibold shadow hover:bg-[#ece9dc] transition-all duration-300 flex items-center justify-center gap-2"
               >
                 <FiHome className="text-lg" />
                 Back to Home
@@ -233,9 +249,65 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Stats Grid */}
+      {/* Content */}
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="space-y-0">
+        <div className="grid grid-cols-1 xl:grid-cols-[320px_1fr] gap-6">
+          <aside className="rounded-2xl border border-[#d7e4ee] bg-white p-5 h-fit xl:sticky xl:top-24 shadow-sm">
+            <h3 className="text-xs uppercase tracking-[0.14em] text-[#5f7f95] font-bold mb-3">Workspace</h3>
+            <div className="space-y-2">
+              {sectionItems.map((sectionItem) => {
+                const Icon = sectionItem.icon
+                const isActive = dashboardSection === sectionItem.id
+                return (
+                  <button
+                    key={sectionItem.id}
+                    onClick={() => setDashboardSection(sectionItem.id)}
+                    className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-semibold transition-colors ${
+                      isActive ? 'bg-[#e8f1f7] border-[#8cb5cf] text-[#1f3f56] shadow-sm' : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Icon />
+                    {sectionItem.label}
+                  </button>
+                )
+              })}
+            </div>
+
+            <div className="mt-5 pt-5 border-t border-gray-200 space-y-3">
+              <h4 className="text-xs uppercase tracking-[0.14em] text-[#5f7f95] font-bold">Report Tools</h4>
+              <label className="text-xs font-semibold text-gray-600 block">Export scope</label>
+              <select
+                value={exportScope}
+                onChange={(e) => setExportScope(e.target.value as 'full' | 'stats' | 'controls')}
+                className="w-full px-3 py-2.5 rounded-xl border border-gray-300 bg-white text-sm"
+              >
+                <option value="full">Full dashboard</option>
+                <option value="stats">Statistics page</option>
+                <option value="controls">Controls page</option>
+              </select>
+
+              <button
+                onClick={handleExport}
+                disabled={isExporting || stats.loading}
+                className="w-full px-4 py-2.5 bg-[#1f3f56] text-white rounded-xl font-semibold shadow hover:bg-[#193246] transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                <FiDownload className="text-lg" />
+                {isExporting ? 'Exporting...' : `Export ${exportScopeLabel}`}
+              </button>
+            </div>
+          </aside>
+
+          <main className="space-y-5">
+            <div className="rounded-2xl border border-[#d9e6ef] bg-white px-5 py-4 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+              <div>
+                <p className="text-xs uppercase tracking-[0.14em] text-[#5f7f95] font-bold">Current Section</p>
+                <p className="text-xl font-bold text-[#1f3f56]">{dashboardSection === 'stats' ? 'Platform Statistics' : 'Operational Controls'}</p>
+              </div>
+              <p className="text-sm text-gray-600">{dashboardSection === 'stats' ? 'Monitor performance and latest auction outcomes.' : 'Manage content, users, live auctions, and historical sessions.'}</p>
+            </div>
+
+            {dashboardSection === 'stats' && (
+              <div ref={statsSectionRef} className="space-y-0">
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-5">
           {primaryCards.map((card, index) => {
             const Icon = card.icon
@@ -326,10 +398,11 @@ export default function AdminDashboard() {
             </div>
           )}
         </div>
-        </div>
+              </div>
+            )}
 
-        {/* Navigation Tabs */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+            {dashboardSection === 'controls' && (
+              <div ref={controlsSectionRef} className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
           <div className="border-b border-gray-200">
             <nav className="flex overflow-x-auto scrollbar-hide" aria-label="Tabs">
               {tabs.map((tab) => {
@@ -430,6 +503,23 @@ export default function AdminDashboard() {
                 <AuctionManager />
               </div>
             )}
+
+            {activeTab === 'sessions' && (
+              <div>
+                <div className="mb-8">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-3 bg-cyan-100 rounded-xl">
+                      <FiBarChart2 className="text-2xl text-cyan-700" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-black">Auction Sessions</h2>
+                      <p className="text-sm text-gray-600 mt-1">Explore completed sessions, winners, and payment outcomes</p>
+                    </div>
+                  </div>
+                </div>
+                <AuctionSessions />
+              </div>
+            )}
             
             {activeTab === 'settings' && (
               <div className="text-center py-20">
@@ -447,6 +537,9 @@ export default function AdminDashboard() {
               </div>
             )}
           </div>
+              </div>
+            )}
+          </main>
         </div>
       </div>
       

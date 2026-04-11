@@ -70,6 +70,7 @@ CREATE TABLE IF NOT EXISTS products (
   title VARCHAR(255) NOT NULL,
   description TEXT NOT NULL,
   image_url TEXT NOT NULL,
+  category VARCHAR(64) NOT NULL CHECK (category IN ('electronics', 'collectibles', 'luxury goods', 'real estate and property', 'furniture')),
   cloudinary_public_id VARCHAR(255),
   is_active BOOLEAN DEFAULT true,
   has_auction BOOLEAN DEFAULT false,
@@ -90,6 +91,7 @@ CREATE INDEX IF NOT EXISTS idx_products_is_active ON products(is_active);
 CREATE INDEX IF NOT EXISTS idx_products_has_auction ON products(has_auction);
 CREATE INDEX IF NOT EXISTS idx_products_auction_status ON products(auction_status);
 CREATE INDEX IF NOT EXISTS idx_products_auction_end_time ON products(auction_end_time);
+CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
 
 -- ==================== BIDS TABLE ====================
 CREATE TABLE IF NOT EXISTS bids (
