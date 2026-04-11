@@ -57,6 +57,7 @@ export interface IProduct {
   title: string
   description: string
   imageUrl: string
+  category: 'electronics' | 'collectibles' | 'luxury goods' | 'real estate and property' | 'furniture'
   cloudinary_public_id?: string | null
   isActive?: boolean
   hasAuction?: boolean
@@ -166,6 +167,7 @@ function mapToProduct(row: any): IProduct {
     title: row.title,
     description: row.description,
     imageUrl: row.image_url,
+    category: row.category,
     cloudinary_public_id: row.cloudinary_public_id,
     isActive: row.is_active,
     hasAuction: row.has_auction,
@@ -909,9 +911,71 @@ export const AdminSetting = {
   }
 }
 
+let productCategoryBootstrapPromise: Promise<void> | null = null
+
+async function ensureProductCategorySupport(): Promise<void> {
+  if (!productCategoryBootstrapPromise) {
+    productCategoryBootstrapPromise = (async () => {
+      await pool.query(`
+        ALTER TABLE products
+        ADD COLUMN IF NOT EXISTS category VARCHAR(64);
+
+        UPDATE products
+        SET category = 'collectibles'
+        WHERE category IS NULL OR TRIM(category) = '';
+
+        UPDATE products SET category = 'luxury goods' WHERE category = 'luxuty goods';
+        UPDATE products SET category = 'furniture' WHERE category = 'furnitures';
+
+        UPDATE products
+        SET category = 'collectibles'
+        WHERE category NOT IN (
+          'electronics',
+          'collectibles',
+          'luxury goods',
+          'real estate and property',
+          'furniture'
+        );
+
+        DO $$
+        BEGIN
+          IF NOT EXISTS (
+            SELECT 1
+            FROM pg_constraint
+            WHERE conname = 'products_category_check'
+              AND conrelid = 'products'::regclass
+          ) THEN
+            ALTER TABLE products
+              ADD CONSTRAINT products_category_check
+              CHECK (category IN (
+                'electronics',
+                'collectibles',
+                'luxury goods',
+                'real estate and property',
+                'furniture'
+              ));
+          END IF;
+        END $$;
+
+        ALTER TABLE products
+        ALTER COLUMN category SET NOT NULL;
+
+        CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
+      `)
+    })().catch((error) => {
+      productCategoryBootstrapPromise = null
+      throw error
+    })
+  }
+
+  await productCategoryBootstrapPromise
+}
+
 // ==================== PRODUCT MODEL ====================
 export const Product = {
   async find(query: any = {}): Promise<IProduct[]> {
+    await ensureProductCategorySupport()
+
     let sql = 'SELECT * FROM products WHERE 1=1'
     const params: any[] = []
     let paramCount = 1
@@ -941,6 +1005,16 @@ export const Product = {
       params.push(query.auctionStatus)
       paramCount++
     }
+    if (query.category) {
+      sql += ` AND category = $${paramCount}`
+      params.push(query.category)
+      paramCount++
+    }
+    if (query.search) {
+      sql += ` AND (title ILIKE $${paramCount} OR description ILIKE $${paramCount})`
+      params.push(`%${query.search}%`)
+      paramCount++
+    }
 
     sql += ' ORDER BY created_at DESC'
 
@@ -949,6 +1023,8 @@ export const Product = {
   },
 
   async findById(id: string): Promise<IProduct | null> {
+    await ensureProductCategorySupport()
+
     const result = await pool.query('SELECT * FROM products WHERE id = $1', [id])
     if (result.rows.length === 0) return null
     
@@ -973,6 +1049,11 @@ export const Product = {
       if (this.imageUrl) {
         updateFields.push(`image_url = $${paramCount}`)
         params.push(this.imageUrl)
+        paramCount++
+      }
+      if (this.category) {
+        updateFields.push(`category = $${paramCount}`)
+        params.push(this.category)
         paramCount++
       }
       if (this.cloudinary_public_id !== undefined) {
@@ -1002,18 +1083,21 @@ export const Product = {
   },
 
   async create(data: Partial<IProduct>): Promise<IProduct> {
+    await ensureProductCategorySupport()
+
     const result = await pool.query(
       `INSERT INTO products (
-        user_id, user_email, title, description, image_url, cloudinary_public_id,
+        user_id, user_email, title, description, image_url, category, cloudinary_public_id,
         is_active, has_auction, auction_end_time, starting_bid, current_bid,
         highest_bidder, highest_bidder_email, total_bids, auction_status
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *`,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) RETURNING *`,
       [
         data.userId,
         data.userEmail,
         data.title,
         data.description,
         data.imageUrl,
+        data.category,
         data.cloudinary_public_id || null,
         data.isActive !== false,
         data.hasAuction || false,
@@ -1030,6 +1114,8 @@ export const Product = {
   },
 
   async findByIdAndUpdate(id: string, updates: any): Promise<IProduct | null> {
+    await ensureProductCategorySupport()
+
     const updateFields: string[] = []
     const params: any[] = []
     let paramCount = 1
@@ -1047,6 +1133,11 @@ export const Product = {
     if (updates.imageUrl) {
       updateFields.push(`image_url = $${paramCount}`)
       params.push(updates.imageUrl)
+      paramCount++
+    }
+    if (updates.category) {
+      updateFields.push(`category = $${paramCount}`)
+      params.push(updates.category)
       paramCount++
     }
     if (updates.cloudinary_public_id !== undefined) {
