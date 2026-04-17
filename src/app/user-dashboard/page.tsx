@@ -110,7 +110,7 @@ export default function UserDashboard() {
 
   const uploadProfileImage = async (file: File) => {
     if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.type)) {
-      throw new Error('Invalid file type. Use JPG, PNG, or WEBP.')
+      throw new Error('invalid image type')
     }
 
     if (file.size > 5 * 1024 * 1024) {
@@ -561,7 +561,7 @@ export default function UserDashboard() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-[#393E46]">{selectedFileName || 'Current image'}</p>
-                    <p className="text-xs text-[#929AAB]">JPG, PNG, WEBP up to 10MB</p>
+                    <p className="text-xs text-[#929AAB]">JPG, JPEG or PNG</p>
                   </div>
                 </div>
                 <div

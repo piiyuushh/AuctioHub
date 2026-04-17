@@ -101,6 +101,42 @@ export async function GET(
       }
     }
 
+    // Include the current winner even if historical bid rows are missing for legacy/inconsistent data.
+    if (
+      product.highestBidder &&
+      product.highestBidderEmail &&
+      !groupedMap.has(product.highestBidder)
+    ) {
+      groupedMap.set(product.highestBidder, {
+        userId: product.highestBidder,
+        userEmail: product.highestBidderEmail,
+        highestBid: Number(product.currentBid || product.startingBid || 0),
+        latestBidAmount: Number(product.currentBid || product.startingBid || 0),
+        totalBidEntries: 0,
+        activeBidEntries: bannedSet.has(product.highestBidder) ? 0 : 1,
+        latestBidAt: product.updatedAt ? new Date(product.updatedAt) : null,
+        isCurrentWinner: true,
+        isBanned: bannedSet.has(product.highestBidder)
+      })
+    }
+
+    // Keep banned users visible for admins even when their bid rows are no longer available.
+    for (const ban of bans) {
+      if (!groupedMap.has(ban.userId)) {
+        groupedMap.set(ban.userId, {
+          userId: ban.userId,
+          userEmail: ban.userEmail,
+          highestBid: 0,
+          latestBidAmount: 0,
+          totalBidEntries: 0,
+          activeBidEntries: 0,
+          latestBidAt: ban.updatedAt ? new Date(ban.updatedAt) : ban.createdAt ? new Date(ban.createdAt) : null,
+          isCurrentWinner: product.highestBidder === ban.userId,
+          isBanned: true
+        })
+      }
+    }
+
     const groupedUsers = Array.from(groupedMap.values()).sort((a, b) => b.highestBid - a.highestBid)
 
     return NextResponse.json({

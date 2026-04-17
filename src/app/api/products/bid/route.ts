@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     if (!Number.isInteger(parsedBidAmount) || parsedBidAmount <= 0) {
       return NextResponse.json(
-        { error: 'Bid amount must be a whole number greater than 0' },
+        { error: 'Please enter a valid amount' },
         { status: 400 }
       )
     }
@@ -77,8 +77,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Prevent seller from bidding on their own product
-    if (product.userEmail === session.user.email) {
+    // Prevent seller from bidding on their own product.
+    const normalizedProductSellerEmail = product.userEmail?.trim().toLowerCase()
+    const normalizedSessionEmail = session.user.email?.trim().toLowerCase()
+
+    if (
+      normalizedProductSellerEmail &&
+      normalizedSessionEmail &&
+      normalizedProductSellerEmail === normalizedSessionEmail
+    ) {
       return NextResponse.json(
         { error: 'You cannot bid on your own product' },
         { status: 403 }
@@ -98,7 +105,7 @@ export async function POST(request: NextRequest) {
     if (product.highestBidder) {
       await Bid.updateMany(
         { productId, isWinning: true },
-        { isWinning: false }
+        { $set: { isWinning: false } }
       )
     }
 

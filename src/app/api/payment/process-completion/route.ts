@@ -35,11 +35,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const normalizedWinnerEmail = product.highestBidderEmail?.trim().toLowerCase() || "";
+    const normalizedSessionEmail = session.user.email?.trim().toLowerCase() || "";
+    if (!normalizedWinnerEmail || normalizedWinnerEmail !== normalizedSessionEmail) {
+      return NextResponse.json(
+        { error: "Only the auction winner can complete this payment" },
+        { status: 403 }
+      );
+    }
+
+    const fullPaymentExists = await AuctionHistory.existsByProductAndPayment(productId, "full");
+    const penaltyPaymentExists = await AuctionHistory.existsByProductAndPayment(productId, "penalty");
+
+    if (fullPaymentExists) {
+      return NextResponse.json({
+        success: true,
+        message: "This auction is already fully completed.",
+      });
+    }
+
+    if (paymentType === "full" && penaltyPaymentExists) {
+      return NextResponse.json(
+        { error: "This auction already has a penalty payment and cannot be fully paid now." },
+        { status: 409 }
+      );
+    }
+
     // Idempotency guard for repeated success-page or webhook retries.
-    const alreadyRecorded = await AuctionHistory.existsByProductAndPayment(
-      productId,
-      paymentType
-    );
+    const alreadyRecorded =
+      paymentType === "full" ? fullPaymentExists : penaltyPaymentExists;
 
     if (!alreadyRecorded) {
       await AuctionHistory.create({
@@ -63,6 +87,7 @@ export async function POST(request: NextRequest) {
       await Product.findByIdAndUpdate(productId, {
         auctionStatus: 'none',
         hasAuction: false,
+        isActive: true,
         auctionEndTime: null,
         currentBid: product.startingBid || 0,
         totalBids: 0,

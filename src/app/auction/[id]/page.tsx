@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
@@ -29,10 +29,12 @@ interface Product {
 }
 
 interface ChatMessage {
-  _id: string;
+  _id?: string;
+  id?: string;
   productId: string;
   userId: string;
   userEmail: string;
+  userImage?: string | null;
   message: string;
   createdAt: string;
 }
@@ -51,24 +53,105 @@ export default function AuctionSessionPage() {
   const [timeRemaining, setTimeRemaining] = useState("");
   const [showWinner, setShowWinner] = useState(false);
   const [bidAmount, setBidAmount] = useState("");
+  const [bidValidationError, setBidValidationError] = useState("");
   const [alertDialog, setAlertDialog] = useState({ open: false, title: '', message: '', variant: 'default' as 'default' | 'destructive' | 'success' });
+  const [banNotification, setBanNotification] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
-  const lastMessageCreatedAtRef = useRef<string | null>(null);
-  const seenMessageIdsRef = useRef<Set<string>>(new Set());
+
+  const getMessageStableId = (message: ChatMessage) => {
+    if (message._id) return message._id;
+    if (message.id) return message.id;
+    return `${message.productId}:${message.userId}:${message.createdAt}:${message.message}`;
+  };
+
+  const normalizeIncomingMessages = (payload: unknown): ChatMessage[] => {
+    const raw = Array.isArray(payload)
+      ? payload
+      : (
+          payload &&
+          typeof payload === "object" &&
+          "messages" in payload &&
+          Array.isArray((payload as { messages?: unknown }).messages)
+        )
+      ? ((payload as { messages: unknown[] }).messages)
+      : [];
+
+    return raw
+      .map((item) => {
+        if (!item || typeof item !== "object") return null;
+        const msg = item as Partial<ChatMessage>;
+
+        const normalized: ChatMessage = {
+          _id: msg._id,
+          id: msg.id,
+          productId: msg.productId || productId,
+          userId: msg.userId || "unknown",
+          userEmail: msg.userEmail || "unknown@user",
+          userImage: msg.userImage ?? null,
+          message: typeof msg.message === "string" ? msg.message : "",
+          createdAt:
+            typeof msg.createdAt === "string"
+              ? msg.createdAt
+              : new Date().toISOString(),
+        };
+
+        if (!normalized.message.trim()) return null;
+        return normalized;
+      })
+      .filter((msg): msg is ChatMessage => Boolean(msg));
+  };
+
+  const fetchSessionMessages = useCallback(async () => {
+    try {
+      if (!productId) return;
+
+      const response = await fetch(`/api/auction/${productId}/chat`, { cache: "no-store" });
+      if (!response.ok) {
+        return;
+      }
+
+      const payload = await response.json();
+      const syncedMessages = normalizeIncomingMessages(payload).sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      );
+
+      setMessages(syncedMessages);
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+    }
+  }, [productId]);
+
+  const getUserInitials = (email?: string | null) => {
+    if (!email) return "U";
+    const localPart = email.split("@")[0]?.trim();
+    if (!localPart) return "U";
+
+    const words = localPart.split(/[._\-\s]+/).filter(Boolean);
+    if (words.length >= 2) {
+      return `${words[0][0]}${words[1][0]}`.toUpperCase();
+    }
+    return localPart.slice(0, 2).toUpperCase();
+  };
 
   const appendUniqueMessages = (incomingMessages: ChatMessage[]) => {
     if (!incomingMessages.length) return;
 
     setMessages((prev) => {
       const next = [...prev];
+      const localSeen = new Set(next.map((msg) => getMessageStableId(msg)));
 
       for (const message of incomingMessages) {
-        if (!message?._id || seenMessageIdsRef.current.has(message._id)) {
+        if (!message) {
           continue;
         }
 
-        seenMessageIdsRef.current.add(message._id);
+        const stableId = getMessageStableId(message);
+        if (localSeen.has(stableId)) {
+          continue;
+        }
+
+        localSeen.add(stableId);
         next.push(message);
       }
 
@@ -79,19 +162,17 @@ export default function AuctionSessionPage() {
         (a, b) =>
           new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       );
-
-      lastMessageCreatedAtRef.current = next[next.length - 1].createdAt;
       return next;
     });
   };
 
   useEffect(() => {
     setMessages([]);
-    seenMessageIdsRef.current = new Set();
-    lastMessageCreatedAtRef.current = null;
   }, [productId]);
 
   useEffect(() => {
+    if (!productId) return;
+
     if (!session) {
       router.push("/sign-in");
       return;
@@ -104,6 +185,21 @@ export default function AuctionSessionPage() {
         const accessResponse = await fetch(`/api/auction/${productId}/access`);
         if (!accessResponse.ok) {
           setLoading(false);
+          const accessData = await accessResponse.json().catch(() => ({}));
+          
+          // Check if this is a ban specifically
+          if (accessResponse.status === 403 && accessData.error?.includes('removed')) {
+            setBanNotification({
+              show: true,
+              message: 'You have been banned from this auction session. Please look for other sessions.'
+            });
+            // Redirect after showing notification for 3 seconds
+            setTimeout(() => {
+              router.push("/category");
+            }, 3000);
+            return;
+          }
+          
           router.push("/category");
           return;
         }
@@ -124,24 +220,6 @@ export default function AuctionSessionPage() {
           return;
         }
 
-        const fetchSessionMessages = async () => {
-          try {
-            const lastMessageTime = lastMessageCreatedAtRef.current || undefined;
-            const url = lastMessageTime
-              ? `/api/auction/${productId}/chat?after=${lastMessageTime}`
-              : `/api/auction/${productId}/chat`;
-            const response = await fetch(url);
-            if (response.ok) {
-              const newMessages = await response.json();
-              if (newMessages.length > 0) {
-                appendUniqueMessages(newMessages);
-              }
-            }
-          } catch (error) {
-            console.error("Error fetching messages:", error);
-          }
-        };
-
         await fetchSessionMessages();
         messageInterval = setInterval(fetchSessionMessages, 2000);
       } catch (error) {
@@ -161,7 +239,7 @@ export default function AuctionSessionPage() {
         clearInterval(messageInterval);
       }
     };
-  }, [session, productId, router]);
+  }, [session, productId, router, fetchSessionMessages]);
 
   useEffect(() => {
     if (!product) return;
@@ -247,9 +325,29 @@ export default function AuctionSessionPage() {
       });
 
       if (response.ok) {
-        const sentMessage: ChatMessage = await response.json();
+        const sentMessage = (await response.json()) as ChatMessage;
         setNewMessage("");
-        appendUniqueMessages([sentMessage]);
+
+        // Some environments may return `id` without `_id`; normalize for rendering/dedupe.
+        const normalizedMessage: ChatMessage = {
+          ...sentMessage,
+          _id:
+            sentMessage._id ||
+            sentMessage.id ||
+            `${productId}:${session?.user?.email || "anon"}:${new Date().toISOString()}`,
+          userEmail: sentMessage.userEmail || session?.user?.email || "unknown@user",
+          productId: sentMessage.productId || productId,
+          userId: sentMessage.userId || session?.user?.email || "unknown",
+          createdAt: sentMessage.createdAt || new Date().toISOString(),
+          message: sentMessage.message || messageToSend,
+          userImage:
+            sentMessage.userImage !== undefined
+              ? sentMessage.userImage
+              : session?.user?.image || null,
+        };
+
+        appendUniqueMessages([normalizedMessage]);
+        await fetchSessionMessages();
       } else {
         const data = await response.json().catch(() => ({}));
         setAlertDialog({
@@ -278,9 +376,12 @@ export default function AuctionSessionPage() {
     const minimumBid = (product.currentBid || product.startingBid || 0) + 1;
 
     if (!Number.isInteger(parsedBidAmount) || parsedBidAmount <= 0) {
-      setAlertDialog({ open: true, title: 'Invalid Amount', message: 'Please enter a whole number bid amount', variant: 'default' });
+      setBidValidationError("Please enter a valid amount");
+      setAlertDialog({ open: true, title: 'Invalid Amount', message: 'Please enter a valid amount', variant: 'default' });
       return;
     }
+
+    setBidValidationError("");
 
     if (parsedBidAmount < minimumBid) {
       setAlertDialog({
@@ -300,6 +401,7 @@ export default function AuctionSessionPage() {
       });
       if (response.ok) {
         setBidAmount("");
+        setBidValidationError("");
         await fetchProduct();
       } else {
         const data = await response.json();
@@ -343,15 +445,36 @@ export default function AuctionSessionPage() {
 
   const isEnded =
     timeRemaining === "Ended" || product.auctionStatus === "ended";
-  const isSeller = session?.user?.email === product.userEmail;
+  const normalizedSessionEmail = session?.user?.email?.trim().toLowerCase() || "";
+  const normalizedSellerEmail = product.userEmail?.trim().toLowerCase() || "";
+  const isSeller =
+    normalizedSessionEmail.length > 0 &&
+    normalizedSellerEmail.length > 0 &&
+    normalizedSessionEmail === normalizedSellerEmail;
   const currentBidDisplay =
     product.currentBid || product.startingBid || 0;
   const minimumBid = currentBidDisplay + 1;
   const bidPreview = Number(bidAmount);
+  const hasValidIntegerBid = Number.isInteger(bidPreview) && bidPreview > 0;
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Header />
+
+      {/* ── Ban Notification Banner ── */}
+      {banNotification.show && (
+        <div className="bg-red-50 border-b-2 border-red-400 px-6 py-4 flex items-center gap-3 animate-in fade-in slide-in-from-top">
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-red-700">{banNotification.message}</p>
+          </div>
+          <button
+            onClick={() => setBanNotification({ show: false, message: '' })}
+            className="text-red-700 hover:text-red-900 text-xl leading-none"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       {/* ── Winner Modal ── */}
       {showWinner && (
@@ -541,26 +664,68 @@ export default function AuctionSessionPage() {
               </div>
             ) : (
               messages.map((msg) => {
-                const isMe = msg.userEmail === session?.user?.email;
+                const isMe =
+                  msg.userEmail?.trim().toLowerCase() ===
+                  session?.user?.email?.trim().toLowerCase();
+                const messageKey =
+                  msg._id ||
+                  msg.id ||
+                  `${msg.userId}-${msg.createdAt}-${msg.message}`;
                 return (
                   <div
-                    key={msg._id}
-                    className={`flex flex-col ${
+                    key={messageKey}
+                    className={`flex gap-2.5 ${
                       isMe ? "items-end" : "items-start"
                     }`}
                   >
-                    <span className="text-[10px] tracking-[0.08em] uppercase text-neutral-400 mb-1">
-                      {isMe ? "You" : msg.userEmail}
-                    </span>
-                    <div
-                      className={`max-w-[72%] px-4 py-2.5 text-[13px] leading-relaxed ${
-                        isMe
-                          ? "bg-black text-white"
-                          : "bg-neutral-100 text-black border border-neutral-200"
-                      }`}
-                    >
-                      {msg.message}
+                    {!isMe && (
+                      <div className="w-8 h-8 shrink-0 rounded-full overflow-hidden border border-neutral-200 bg-neutral-100 flex items-center justify-center text-[10px] font-semibold tracking-[0.06em] text-neutral-600 uppercase">
+                        {msg.userImage ? (
+                          <img
+                            src={msg.userImage}
+                            alt={msg.userEmail}
+                            width={32}
+                            height={32}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          getUserInitials(msg.userEmail)
+                        )}
+                      </div>
+                    )}
+
+                    <div className={`max-w-[80%] ${isMe ? "items-end" : "items-start"} flex flex-col`}>
+                      <span className="text-[10px] tracking-[0.08em] uppercase text-neutral-400 mb-1">
+                        {isMe ? "You" : msg.userEmail}
+                      </span>
+                      <div
+                        className={`px-4 py-2.5 text-[13px] leading-relaxed ${
+                          isMe
+                            ? "bg-black text-white"
+                            : "bg-neutral-100 text-black border border-neutral-200"
+                        }`}
+                      >
+                        <p className="whitespace-pre-wrap break-words text-inherit">
+                          {msg.message?.trim() || "(message unavailable)"}
+                        </p>
+                      </div>
                     </div>
+
+                    {isMe && (
+                      <div className="w-8 h-8 shrink-0 rounded-full overflow-hidden border border-neutral-200 bg-black text-white flex items-center justify-center text-[10px] font-semibold tracking-[0.06em] uppercase">
+                        {session?.user?.image ? (
+                          <img
+                            src={session.user.image}
+                            alt={session.user.email || "You"}
+                            width={32}
+                            height={32}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          getUserInitials(session?.user?.email)
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })
@@ -600,12 +765,29 @@ export default function AuctionSessionPage() {
                     min={minimumBid}
                     step="1"
                     value={bidAmount}
-                    onChange={(e) => setBidAmount(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setBidAmount(value);
+
+                      if (!value.trim()) {
+                        setBidValidationError("");
+                        return;
+                      }
+
+                      const parsedValue = Number(value);
+                      if (!Number.isFinite(parsedValue) || !Number.isInteger(parsedValue)) {
+                        setBidValidationError("Please enter a valid amount");
+                        return;
+                      }
+
+                      setBidValidationError("");
+                    }}
                     placeholder="Enter bid amount"
                     className="flex-1 text-sm px-4 py-2.5 border border-neutral-300 bg-white text-black outline-none focus:border-black transition-colors"
                   />
                   <button
                     onClick={handleQuickBid}
+                    disabled={!!bidValidationError || !bidAmount.trim()}
                     className="flex items-center gap-2 px-5 py-2.5 bg-black text-white text-[11px] font-semibold tracking-[0.1em] uppercase hover:opacity-80 transition-opacity whitespace-nowrap"
                   >
                     <PlusCircleIcon className="w-4 h-4" />
@@ -615,7 +797,12 @@ export default function AuctionSessionPage() {
                 <p className="text-[10px] text-neutral-400 tracking-[0.04em]">
                   Minimum bid Rs.{minimumBid.toLocaleString()} · Enter the full bid amount
                 </p>
-                {Number.isInteger(bidPreview) && bidPreview > 0 ? (
+                {bidValidationError ? (
+                  <p className="text-[10px] text-red-600 tracking-[0.04em]">
+                    {bidValidationError}
+                  </p>
+                ) : null}
+                {hasValidIntegerBid ? (
                   <p className="text-[10px] text-neutral-500 tracking-[0.04em]">
                     Your bid: Rs. {bidPreview.toLocaleString()}
                   </p>

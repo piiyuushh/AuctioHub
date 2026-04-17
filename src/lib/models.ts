@@ -92,6 +92,7 @@ export interface IChatMessage {
   productId: string
   userId: string
   userEmail: string
+  userImage?: string | null
   message: string
   createdAt?: Date
   updatedAt?: Date
@@ -1170,6 +1171,11 @@ export const Product = {
       params.push(updates.currentBid)
       paramCount++
     }
+    if (updates.startingBid !== undefined) {
+      updateFields.push(`starting_bid = $${paramCount}`)
+      params.push(updates.startingBid)
+      paramCount++
+    }
     if (updates.highestBidder !== undefined) {
       updateFields.push(`highest_bidder = $${paramCount}`)
       params.push(updates.highestBidder)
@@ -1695,6 +1701,28 @@ export const AuctionHistory = {
     return result.rows.length > 0
   },
 
+  async markPenaltyAsRelisted(productId: string): Promise<IAuctionHistory | null> {
+    await ensureAuctionHistoryTable()
+
+    const result = await pool.query(
+      `UPDATE auction_history
+       SET outcome_status = 'relisted', updated_at = CURRENT_TIMESTAMP
+       WHERE id = (
+         SELECT id
+         FROM auction_history
+         WHERE product_id = $1
+           AND payment_type = 'penalty'
+           AND outcome_status = 'penalty_paid'
+         ORDER BY conducted_at DESC, created_at DESC
+         LIMIT 1
+       )
+       RETURNING *`,
+      [productId]
+    )
+
+    return result.rows.length > 0 ? mapToAuctionHistory(result.rows[0]) : null
+  },
+
   async getAdminSummary(limit = 5): Promise<{
     totalAuctionsConducted: number
     fullPaymentCount: number
@@ -1753,17 +1781,22 @@ export const AuctionHistory = {
 // ==================== CHAT MESSAGE MODEL ====================
 export const ChatMessage = {
   async find(query: any = {}): Promise<IChatMessage[]> {
-    let sql = 'SELECT * FROM chat_messages WHERE 1=1'
+    let sql = `
+      SELECT cm.*, u.image AS user_image
+      FROM chat_messages cm
+      LEFT JOIN users u ON u.email = cm.user_email
+      WHERE 1=1
+    `
     const params: any[] = []
     let paramCount = 1
 
     if (query.productId) {
-      sql += ` AND product_id = $${paramCount}`
+      sql += ` AND cm.product_id = $${paramCount}`
       params.push(query.productId)
       paramCount++
     }
     if (query.userId) {
-      sql += ` AND user_id = $${paramCount}`
+      sql += ` AND cm.user_id = $${paramCount}`
       params.push(query.userId)
       paramCount++
     }
@@ -1774,12 +1807,12 @@ export const ChatMessage = {
       null
 
     if (createdAtAfter) {
-      sql += ` AND created_at > $${paramCount}`
+      sql += ` AND cm.created_at > $${paramCount}`
       params.push(createdAtAfter)
       paramCount++
     }
 
-    sql += ' ORDER BY created_at ASC'
+    sql += ' ORDER BY cm.created_at ASC'
 
     if (query.limit && Number.isInteger(query.limit) && query.limit > 0) {
       sql += ` LIMIT $${paramCount}`
@@ -1793,6 +1826,7 @@ export const ChatMessage = {
       productId: row.product_id,
       userId: row.user_id,
       userEmail: row.user_email,
+      userImage: row.user_image || null,
       message: row.message,
       createdAt: row.created_at,
       updatedAt: row.updated_at
@@ -1802,7 +1836,8 @@ export const ChatMessage = {
   async create(data: Partial<IChatMessage>): Promise<IChatMessage> {
     const result = await pool.query(
       `INSERT INTO chat_messages (product_id, user_id, user_email, message) 
-       VALUES ($1, $2, $3, $4) RETURNING *`,
+       VALUES ($1, $2, $3, $4)
+       RETURNING *, (SELECT image FROM users WHERE email = $3 LIMIT 1) AS user_image`,
       [data.productId, data.userId, data.userEmail, data.message]
     )
     const row = result.rows[0]
@@ -1812,6 +1847,7 @@ export const ChatMessage = {
       productId: row.product_id,
       userId: row.user_id,
       userEmail: row.user_email,
+      userImage: row.user_image || null,
       message: row.message,
       createdAt: row.created_at,
       updatedAt: row.updated_at

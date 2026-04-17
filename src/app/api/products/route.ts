@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { Product, type IProduct } from '@/lib/models'
+import { AuctionHistory, Product, type IProduct } from '@/lib/models'
 import { finalizeAuctionIfExpired, finalizeExpiredAuctionsForList } from '@/lib/auction-finalization'
 import { emitAuctionEnded, emitAuctionStarted, emitAuctionWon } from '@/lib/notifications'
 
@@ -156,6 +156,9 @@ export async function PUT(request: NextRequest) {
       imageUrl, 
       category,
       cloudinary_public_id,
+      hasAuction,
+      auctionDurationHours,
+      startingBid,
       endAuction,
       extendAuction,
       extensionHours 
@@ -186,6 +189,16 @@ export async function PUT(request: NextRequest) {
       )
     }
 
+    const hasFullPayment = await AuctionHistory.existsByProductAndPayment(productId, 'full')
+    if (hasFullPayment) {
+      return NextResponse.json(
+        { error: 'This auction is fully completed and cannot be modified further.' },
+        { status: 409 }
+      )
+    }
+
+    const hasPenaltyPayment = await AuctionHistory.existsByProductAndPayment(productId, 'penalty')
+
     const wasActiveAuction = product.hasAuction && product.auctionStatus === 'active'
 
     // Update other fields
@@ -203,6 +216,42 @@ export async function PUT(request: NextRequest) {
       updateData.category = category
     }
     if (cloudinary_public_id !== undefined) updateData.cloudinary_public_id = cloudinary_public_id
+
+    // Handle auction configuration updates from edit form.
+    if (typeof hasAuction === 'boolean') {
+      updateData.hasAuction = hasAuction
+
+      if (hasAuction) {
+        const parsedStartingBid = Number(startingBid)
+        const normalizedStartingBid = Number.isFinite(parsedStartingBid) && parsedStartingBid >= 0
+          ? parsedStartingBid
+          : (product.startingBid || 0)
+
+        const parsedDurationHours = Number(auctionDurationHours)
+        const durationHours = Number.isFinite(parsedDurationHours) && parsedDurationHours > 0
+          ? parsedDurationHours
+          : 24
+
+        const shouldStartOrRestartAuction = !product.hasAuction || product.auctionStatus !== 'active'
+
+        if (shouldStartOrRestartAuction) {
+          updateData.auctionStatus = 'active'
+          updateData.auctionEndTime = new Date(Date.now() + durationHours * 60 * 60 * 1000)
+          updateData.startingBid = normalizedStartingBid
+          updateData.currentBid = normalizedStartingBid
+          updateData.highestBidder = null
+          updateData.highestBidderEmail = null
+          updateData.totalBids = 0
+        } else if (startingBid !== undefined) {
+          // Keep an already-active auction state but allow updating its configured starting bid.
+          updateData.startingBid = normalizedStartingBid
+        }
+      } else {
+        // Turning auction off from the edit form should make the product non-auction.
+        updateData.auctionStatus = 'none'
+        updateData.auctionEndTime = null
+      }
+    }
 
     // Handle auction end
     if (endAuction && product.hasAuction) {
@@ -228,6 +277,22 @@ export async function PUT(request: NextRequest) {
         emitAuctionEnded(updatedProduct, 'products:put-endAuction'),
         emitAuctionWon(updatedProduct),
       ])
+    }
+
+    const auctionActivatedByEdit =
+      updatedProduct &&
+      typeof hasAuction === 'boolean' &&
+      hasAuction &&
+      updatedProduct.hasAuction &&
+      updatedProduct.auctionStatus === 'active' &&
+      !wasActiveAuction
+
+    if (auctionActivatedByEdit && updatedProduct) {
+      await emitAuctionStarted(updatedProduct)
+
+      if (hasPenaltyPayment) {
+        await AuctionHistory.markPenaltyAsRelisted(productId)
+      }
     }
 
     return NextResponse.json(updatedProduct)

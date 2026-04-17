@@ -107,10 +107,13 @@ const navLinks = [
 ];
 
 export function Header() {
+  const { data: session } = useSession();
   const [isOpen, setIsOpen] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [pendingPaymentCount, setPendingPaymentCount] = useState(0);
+  const [firstPendingPaymentUrl, setFirstPendingPaymentUrl] = useState<string | null>(null);
   const pathname = usePathname();
 
   const isActive = (href: string) => pathname === href;
@@ -156,6 +159,49 @@ export function Header() {
       document.body.style.overflow = 'unset';
     };
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!session?.user?.id) {
+      setPendingPaymentCount(0);
+      setFirstPendingPaymentUrl(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadPendingPayments = async () => {
+      try {
+        const response = await fetch('/api/payment/pending', { cache: 'no-store' });
+        if (!response.ok) {
+          return;
+        }
+
+        const payload = (await response.json()) as {
+          pending?: Array<{ productId: string }>;
+        };
+
+        if (cancelled) return;
+
+        const pending = Array.isArray(payload.pending) ? payload.pending : [];
+        setPendingPaymentCount(pending.length);
+        setFirstPendingPaymentUrl(pending.length > 0 ? `/payment/${pending[0].productId}` : null);
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to load pending payments in header:', error);
+        }
+      }
+    };
+
+    void loadPendingPayments();
+    const timer = window.setInterval(() => {
+      void loadPendingPayments();
+    }, 30000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [pathname, session?.user?.id]);
 
   return (
     <header
@@ -264,6 +310,15 @@ export function Header() {
           {/* Desktop Icons */}
           <div className="flex items-center space-x-4">
 
+            {pendingPaymentCount > 0 && firstPendingPaymentUrl && (
+              <Link
+                href={firstPendingPaymentUrl}
+                className="inline-flex items-center rounded-full bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-900 border border-amber-300 hover:bg-amber-200 transition-colors"
+              >
+                Complete Payment ({pendingPaymentCount})
+              </Link>
+            )}
+
             <AdminLink />
             <UserLink />
 
@@ -315,6 +370,15 @@ export function Header() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  {pendingPaymentCount > 0 && firstPendingPaymentUrl && (
+                    <Link
+                      href={firstPendingPaymentUrl}
+                      onClick={handleCloseMenu}
+                      className="inline-flex items-center rounded-md bg-amber-100 px-2.5 py-1.5 text-[11px] font-semibold text-amber-900 border border-amber-300"
+                    >
+                      Pay ({pendingPaymentCount})
+                    </Link>
+                  )}
                   <UserLink />
                 </div>
               </div>

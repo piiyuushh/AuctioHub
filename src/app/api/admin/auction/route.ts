@@ -49,6 +49,8 @@ export async function GET() {
         const productId = product.id || product._id
         const stats = productId ? bidStats.get(productId) : null
         const bannedCount = productId ? banStats.get(productId) || 0 : 0
+        const fallbackBidderCount = product.highestBidder ? 1 : 0
+        const fallbackBidCount = product.totalBids ?? fallbackBidderCount
 
         return {
           id: productId,
@@ -62,8 +64,8 @@ export async function GET() {
           currentBid: product.currentBid || 0,
           highestBidder: product.highestBidder,
           highestBidderEmail: product.highestBidderEmail,
-          totalBids: stats?.bidCount ?? product.totalBids ?? 0,
-          activeBidderCount: stats?.bidderCount ?? 0,
+          totalBids: stats?.bidCount ?? fallbackBidCount,
+          activeBidderCount: stats?.bidderCount ?? fallbackBidderCount,
           bannedCount,
           createdAt: product.createdAt,
           updatedAt: product.updatedAt
