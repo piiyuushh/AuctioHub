@@ -74,7 +74,7 @@ const ContactForm = () => {
       <section className="bg-gray-50 py-20 md:py-32 relative overflow-hidden">
         <div className="container mx-auto text-center relative z-10 px-4">
           <div className="inline-block px-6 py-3 bg-black text-white rounded-full text-sm font-medium mb-8">
-            🏷 Auction Support Center
+            Auction Support Center
           </div>
           <h1 className="text-5xl md:text-7xl font-bold mb-8 text-black">
             Need Assistance?

@@ -38,7 +38,7 @@ const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link href='https://docs-auctiohub.vercel.app/' target='_blank' rel='noopener noreferrer' className='text-[#EEEEEE] hover:text-[#929AAB] transition-colors duration-200 text-sm flex items-center group'>
+                <Link href='https://docs.auctiohub.piyushkarn.com.np' target='_blank' rel='noopener noreferrer' className='text-[#EEEEEE] hover:text-[#929AAB] transition-colors duration-200 text-sm flex items-center group'>
                   <span className='mr-2 opacity-0 group-hover:opacity-100 transition-opacity'>→</span>
                   Documentation
                 </Link>
@@ -104,6 +104,14 @@ const Footer: React.FC = () => {
               className='hover:text-[#F7F7F7] transition-colors'
             >
               Designed with Sajilo UI
+            </a>
+            <a
+              href='https://piyushkarn.com.np'
+              target='_blank'
+              rel='noopener noreferrer'
+              className='hover:text-[#F7F7F7] transition-colors'
+            >
+              Developer Portfolio
             </a>
           </div>
         </div>

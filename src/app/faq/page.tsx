@@ -14,107 +14,107 @@ const FAQPage = () => {
   };
 
   const faqCategories = [
-  {
-    title: 'General Questions',
-    items: [
-      {
-        question: 'What is this auction platform?',
-        answer:
-          'Our platform is a modern online auction marketplace where users can browse listings, place bids, and sell their own items through timed auctions. It is designed to provide a secure, transparent, and seamless bidding experience.'
-      },
-      {
-        question: 'Is the platform free to use?',
-        answer:
-          'Yes, browsing and bidding are completely free. Sellers may only be charged small service fees when listing or selling items, depending on the category and selling type.'
-      },
-      {
-        question: 'How do auctions work?',
-        answer:
-          'Auctions run for a fixed duration. During this time, bidders place increasing bids. The highest bidder at the end of the auction wins the item, provided they meet all seller requirements.'
-      }
-    ]
-  },
-  {
-    title: 'Bidding & Buying',
-    items: [
-      {
-        question: 'How do I place a bid?',
-        answer:
-          'Simply open any auction listing, enter your bid amount, and confirm. If your bid meets or exceeds the minimum increment, it will be accepted.'
-      },
-      {
-        question: 'What happens if I win an auction?',
-        answer:
-          'You will receive a confirmation message on your dashboard and via email. You must complete payment within the specified time. After payment, the seller will ship or hand over the item.'
-      },
-      {
-        question: 'Can I cancel a bid?',
-        answer:
-          'No, bids cannot be canceled once placed. Please review your bid carefully before submitting to maintain fairness for all participants.'
-      }
-    ]
-  },
-  {
-    title: 'Selling & Listings',
-    items: [
-      {
-        question: 'How can I list an item for auction?',
-        answer:
-          'Go to the "My Listings" section and click "Create Auction". Provide item details, photos, starting price, reserve price (optional), and auction duration.'
-      },
-      {
-        question: 'What is a reserve price?',
-        answer:
-          'A reserve price is the minimum amount you are willing to accept for your item. If the bidding does not reach this amount, the item will not be sold.'
-      },
-      {
-        question: 'Can I edit my listing after it goes live?',
-        answer:
-          'Certain details like title and description can be edited, but changes to the starting price or reserve price are restricted once bidding begins.'
-      }
-    ]
-  },
-  {
-    title: 'Payments & Transactions',
-    items: [
-      {
-        question: 'What payment methods are supported?',
-        answer:
-          'We support multiple payment methods including digital wallets (eSewa, Khalti), bank transfer, and cash on delivery depending on the seller’s preferences.'
-      },
-      {
-        question: 'When do I pay for an item I won?',
-        answer:
-          'Winning bidders must complete payment within the payment window stated in the auction rules. Failure to do so may result in penalties or account restrictions.'
-      },
-      {
-        question: 'Does the platform charge any transaction fee?',
-        answer:
-          'Buyers are not charged extra fees. Sellers may be charged a platform service fee after a successful sale, which varies by category.'
-      }
-    ]
-  },
-  {
-    title: 'Account & Technical Issues',
-    items: [
-      {
-        question: 'Do I need an account to participate in auctions?',
-        answer:
-          'Yes, you must create an account to place bids and list items. Browsing auctions is open to all users.'
-      },
-      {
-        question: 'Why is my bid not being accepted?',
-        answer:
-          'This may happen due to slow internet, the bid being below the minimum increment, or another user placing a higher bid simultaneously. Try refreshing and placing your bid again.'
-      },
-      {
-        question: 'How can I report a problem or suspicious activity?',
-        answer:
-          'You can report any issue using the "Report" button on item pages or contact our support team directly through the help section.'
-      }
-    ]
-  }
-];
+    {
+      title: 'Getting Started',
+      items: [
+        {
+          question: 'What is AuctioHub?',
+          answer:
+            'AuctioHub is a Next.js auction marketplace where users can browse featured items, view new arrivals, join timed auctions, and manage their own listings from a single dashboard.'
+        },
+        {
+          question: 'Do I need an account to use the platform?',
+          answer:
+            'You can browse the homepage, categories, and public auction pages without signing in, but you need an account to place bids, create auctions, and access your dashboard.'
+        },
+        {
+          question: 'Where do I find products and featured items?',
+          answer:
+            'The homepage shows the carousel banner and the latest new arrival products, while category pages and search help you explore active auction listings.'
+        }
+      ]
+    },
+    {
+      title: 'Bidding & Auction Flow',
+      items: [
+        {
+          question: 'How do I place a bid?',
+          answer:
+            'Open an auction detail page, review the current bid and remaining time, enter a higher amount, and submit the bid after signing in.'
+        },
+        {
+          question: 'How does the auction timer work?',
+          answer:
+            'Each auction has a fixed end time. The page shows a live countdown, and the server also checks the end time when bids are submitted so expired auctions cannot be bid on.'
+        },
+        {
+          question: 'What happens when an auction ends?',
+          answer:
+            'When time runs out, the highest bidder becomes the winner. The auction is marked ended and the winner can continue through the payment flow if the listing requires it.'
+        }
+      ]
+    },
+    {
+      title: 'Selling & Listings',
+      items: [
+        {
+          question: 'How do I create an auction listing?',
+          answer:
+            'Sellers can add a product, upload images, set the starting bid, choose an auction end time, and publish the listing from the seller flow in the app.'
+        },
+        {
+          question: 'Can I end or extend my own auction?',
+          answer:
+            'Yes. The seller controls support ending an active auction early and extending it when the listing still has time remaining, subject to the app rules.'
+        },
+        {
+          question: 'Can I change a listing after bidding starts?',
+          answer:
+            'You can update some listing details, but the auction price and active bidding state are protected once bidding has started to keep the process fair.'
+        }
+      ]
+    },
+    {
+      title: 'Payments & Notifications',
+      items: [
+        {
+          question: 'What happens after I win an item?',
+          answer:
+            'You receive the winning status in your account flow and must complete the required payment step before the order is finalized.'
+        },
+        {
+          question: 'How are payment completions handled?',
+          answer:
+            'The app finalizes the auction after the payment completion route runs, which updates the product state and records the result of the auction lifecycle.'
+        },
+        {
+          question: 'Will I get updates about my bids?',
+          answer:
+            'Yes. The project includes a notification system so users can be informed about auction activity, winning bids, and important account events.'
+        }
+      ]
+    },
+    {
+      title: 'Account & Support',
+      items: [
+        {
+          question: 'Where can I view my activity?',
+          answer:
+            'Signed-in users can use the user dashboard to check their profile, auction activity, and other account-related information.'
+        },
+        {
+          question: 'Who can manage the admin pages?',
+          answer:
+            'Admin routes are restricted to users with the ADMIN role. They can manage carousel content, users, new arrivals, auction stats, and utility tools.'
+        },
+        {
+          question: 'How do I contact support?',
+          answer:
+            'Use the Contact page to reach the support team for bidding issues, seller questions, account help, or suspicious activity reports.'
+        }
+      ]
+    }
+  ];
 
 
   const filteredCategories = faqCategories.map(category => ({
@@ -141,7 +141,7 @@ const FAQPage = () => {
               Frequently Asked Questions
             </h1>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Find answers about our price comparison service for Nepali online shopping platforms
+              Find answers about auctions, bidding, selling, payments, and account features in AuctioHub
             </p>
           </div>
 
