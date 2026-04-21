@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { CarouselImage } from '@/lib/models'
 import { requireAdmin } from '@/lib/admin'
+import { invalidateCachedValue } from '@/lib/cache'
 import { v2 as cloudinary } from 'cloudinary'
 
 // Configure Cloudinary
@@ -75,6 +76,8 @@ export async function POST(request: NextRequest) {
       isActive: true,
       cloudinary_public_id: cloudinary_public_id || null
     })
+
+    invalidateCachedValue('public-carousel-images')
     
     console.log('Carousel image created:', image._id)
     return NextResponse.json(image, { status: 201 })
@@ -164,6 +167,8 @@ export async function PUT(request: NextRequest) {
       }
       await CarouselImage.findByIdAndUpdate(currentImageId, { order: targetOrder })
       await CarouselImage.findByIdAndUpdate(targetImageId, { order: currentOrder })
+
+      invalidateCachedValue('public-carousel-images')
       
       return NextResponse.json({ success: true, message: `Image moved ${moveDirection}` })
     }
@@ -185,6 +190,8 @@ export async function PUT(request: NextRequest) {
         { status: 404 }
       )
     }
+
+    invalidateCachedValue('public-carousel-images')
     
     return NextResponse.json(image)
   } catch (error) {
@@ -249,6 +256,8 @@ export async function DELETE(request: NextRequest) {
       { order: { $gt: deletedOrder } },
       { $inc: { order: -1 } }
     )
+
+    invalidateCachedValue('public-carousel-images')
     
     console.log(`Deleted image at order ${deletedOrder} and reordered subsequent images`)
     return NextResponse.json({ 
