@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   ShoppingBagIcon,
   PlusIcon,
+  PencilSquareIcon,
   TrashIcon,
   XMarkIcon,
   PhotoIcon,
@@ -63,7 +64,7 @@ interface Product {
 }
 
 const MAX_IMAGE_SIZE_BYTES = 8 * 1024 * 1024;
-const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"];
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 const PRODUCT_CATEGORIES = [
   "electronics",
   "collectibles",
@@ -95,6 +96,7 @@ export default function CategoryPage() {
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [pendingPaymentProductIds, setPendingPaymentProductIds] = useState<Set<string>>(new Set());
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -106,6 +108,7 @@ export default function CategoryPage() {
     startingBid: 0,
   });
   const [uploading, setUploading] = useState(false);
+  const [imageTypeError, setImageTypeError] = useState("");
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const uploadAbortControllerRef = useRef<AbortController | null>(null);
 
@@ -121,6 +124,9 @@ export default function CategoryPage() {
     fetchProducts();
     if (session) {
       fetchMyProducts();
+      fetchPendingPayments();
+    } else {
+      setPendingPaymentProductIds(new Set());
     }
   }, [session, searchQuery, selectedCategory]);
 
@@ -175,15 +181,41 @@ export default function CategoryPage() {
     }
   };
 
+  const fetchPendingPayments = async () => {
+    if (!session) {
+      setPendingPaymentProductIds(new Set());
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/payment/pending", { cache: "no-store" });
+      if (!response.ok) {
+        return;
+      }
+
+      const data = (await response.json()) as {
+        pending?: Array<{ productId: string }>;
+      };
+
+      const ids = new Set((data.pending || []).map((item) => item.productId));
+      setPendingPaymentProductIds(ids);
+    } catch (error) {
+      console.error("Error fetching pending payments:", error);
+    }
+  };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-      setMessage({ type: "error", text: "Invalid file type. Use JPG, PNG, WebP, or GIF." });
+      setImageTypeError("Invalid Image Type. Please input a valid image type");
+      setMessage({ type: "error", text: "Invalid file type. Use JPG, PNG or WebP." });
       e.target.value = "";
       return;
     }
+
+    setImageTypeError("");
 
     if (file.size > MAX_IMAGE_SIZE_BYTES) {
       setMessage({ type: "error", text: "Image size must be less than 8MB" });
@@ -426,6 +458,7 @@ export default function CategoryPage() {
     }
     setShowAddForm(false);
     setEditingProduct(null);
+    setImageTypeError("");
     setFormData({
       title: "",
       description: "",
@@ -436,6 +469,43 @@ export default function CategoryPage() {
       auctionDurationMinutes: 30,
       startingBid: 0,
     });
+  };
+
+  const openAddProductForm = () => {
+    setEditingProduct(null);
+    setImageTypeError("");
+    setFormData({
+      title: "",
+      description: "",
+      imageUrl: "",
+      category: "",
+      cloudinary_public_id: "",
+      hasAuction: false,
+      auctionDurationMinutes: 30,
+      startingBid: 0,
+    });
+    setShowAddForm(true);
+  };
+
+  const openEditProductForm = (product: Product) => {
+    if (!product._id) {
+      setMessage({ type: "error", text: "This product cannot be edited right now." });
+      return;
+    }
+
+    setEditingProduct(product);
+    setImageTypeError("");
+    setFormData({
+      title: product.title || "",
+      description: product.description || "",
+      imageUrl: product.imageUrl || "",
+      category: product.category || "",
+      cloudinary_public_id: "",
+      hasAuction: Boolean(product.hasAuction),
+      auctionDurationMinutes: 30,
+      startingBid: product.startingBid || 0,
+    });
+    setShowAddForm(true);
   };
 
   return (
@@ -550,10 +620,18 @@ export default function CategoryPage() {
                     : null;
                   const isEnded = timeRemaining === "Ended" || product.auctionStatus === "ended";
                   const isMyProduct = session?.user?.email === product.userEmail;
+                  const productId = product._id || product.id || "";
+                  const isPendingWinnerPayment = Boolean(productId) && pendingPaymentProductIds.has(productId);
+                  const normalizedSessionEmail = session?.user?.email?.trim().toLowerCase() || "";
+                  const normalizedHighestBidderEmail = product.highestBidderEmail?.trim().toLowerCase() || "";
+                  const isCurrentWinner =
+                    normalizedSessionEmail.length > 0 &&
+                    normalizedHighestBidderEmail.length > 0 &&
+                    normalizedSessionEmail === normalizedHighestBidderEmail;
 
                   return (
                     <div
-                      key={product._id || product.id}
+                      key={productId}
                       className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 group"
                     >
                       <div className="relative aspect-square">
@@ -587,6 +665,20 @@ export default function CategoryPage() {
                         <h3 className="font-bold text-black text-lg mb-2 line-clamp-2">
                           {product.title}
                         </h3>
+
+                        {isPendingWinnerPayment && (
+                          <div className="mb-3 rounded-lg border border-amber-300 bg-amber-50 p-3">
+                            <p className="text-xs font-semibold text-amber-900">
+                              You won this auction. Please complete payment.
+                            </p>
+                            <button
+                              onClick={() => router.push(`/payment/${productId}`)}
+                              className="mt-2 inline-flex items-center rounded-md bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700"
+                            >
+                              Complete Payment
+                            </button>
+                          </div>
+                        )}
                         <div className="mb-2">
                           <span className="inline-flex items-center rounded-full bg-[#e8f1f7] text-[#2f617f] text-xs font-semibold px-2.5 py-1">
                             {CATEGORY_LABELS[product.category || ""] || "Uncategorized"}
@@ -678,6 +770,17 @@ export default function CategoryPage() {
                           </div>
                         )}
 
+                        {product.hasAuction && isEnded && !isMyProduct && !isCurrentWinner && (
+                          <button
+                            onClick={() => {
+                              setMessage({ type: "error", text: "This auction session has ended." });
+                            }}
+                            className="mt-3 w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                          >
+                            Select Auction
+                          </button>
+                        )}
+
                         {isMyProduct && (
                           <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                             <p className="text-sm text-blue-800 font-semibold">Your Product</p>
@@ -704,7 +807,7 @@ export default function CategoryPage() {
                 <p className="text-gray-600">Manage your product listings and auctions</p>
               </div>
               <button
-                onClick={() => setShowAddForm(true)}
+                onClick={openAddProductForm}
                 className="flex items-center gap-2 px-6 py-3 bg-[#F6F4EB] text-[#4682A9] border border-[#4682A9] rounded-lg cursor-pointer"
               >
                 <PlusIcon className="h-5 w-5" />
@@ -807,6 +910,13 @@ export default function CategoryPage() {
                           )}
                           <div className="flex gap-2">
                             <button
+                              onClick={() => openEditProductForm(product)}
+                              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 text-black rounded-lg hover:border-black transition-colors"
+                            >
+                              <PencilSquareIcon className="h-4 w-4" />
+                              Edit
+                            </button>
+                            <button
                               onClick={() => handleDelete(product._id!)}
                               className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
                             >
@@ -826,7 +936,7 @@ export default function CategoryPage() {
                 <h3 className="text-xl font-semibold text-black mb-2">No products yet</h3>
                 <p className="text-gray-600 mb-6">Start by adding your first product!</p>
                 <button
-                  onClick={() => setShowAddForm(true)}
+                  onClick={openAddProductForm}
                   className="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
                 >
                   <PlusIcon className="h-5 w-5" />
@@ -869,9 +979,10 @@ export default function CategoryPage() {
                     />
                     <button
                       type="button"
-                      onClick={() =>
-                        setFormData((prev) => ({ ...prev, imageUrl: "", cloudinary_public_id: "" }))
-                      }
+                      onClick={() => {
+                        setImageTypeError("");
+                        setFormData((prev) => ({ ...prev, imageUrl: "", cloudinary_public_id: "" }));
+                      }}
                       className="absolute top-2 right-2 p-2 bg-red-600 text-white rounded-full hover:bg-red-700"
                     >
                       <XMarkIcon className="h-5 w-5" />
@@ -881,7 +992,7 @@ export default function CategoryPage() {
                   <label className="flex flex-col items-center justify-center w-full aspect-video border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-black transition-colors">
                     <PhotoIcon className="h-16 w-16 text-gray-400 mb-4" />
                     <p className="text-sm text-gray-600 mb-2">Click to upload image</p>
-                    <p className="text-xs text-gray-500">PNG, JPG, WebP, GIF</p>
+                    <p className="text-xs text-gray-500">PNG, JPG, WebP</p>
                     <input
                       type="file"
                       accept="image/*"
@@ -896,6 +1007,7 @@ export default function CategoryPage() {
                     )}
                   </label>
                 )}
+                {imageTypeError && <p className="mt-2 text-sm text-red-600">{imageTypeError}</p>}
               </div>
 
               <div>

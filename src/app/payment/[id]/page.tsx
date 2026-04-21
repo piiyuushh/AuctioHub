@@ -144,19 +144,6 @@ export default function PaymentPage() {
           setAlertDialog({ open: true, title: 'Payment Error', message: data.error || "Failed to create checkout session", variant: 'destructive' });
           setProcessing(false);
         }
-      } else if (selectedMethod === "mobile") {
-        // Mobile payment (demo)
-        setTimeout(async () => {
-          await finalizePayment(type);
-          setProcessing(false);
-          const message = type === "full"
-            ? "Mobile payment successful! Thank you for your purchase."
-            : "Penalty payment successful. The seller will be compensated.";
-          setAlertDialog({ open: true, title: 'Payment Successful', message: message, variant: 'success' });
-          setTimeout(() => {
-            router.push("/");
-          }, 1500);
-        }, 2000);
       }
     } catch (error) {
       console.error("Payment error:", error);
@@ -171,12 +158,6 @@ export default function PaymentPage() {
       name: "Credit/Debit Card",
       icon: CreditCardIcon,
       description: "Pay securely with Stripe",
-    },
-    {
-      id: "mobile" as PaymentMethod,
-      name: "Mobile Payment",
-      icon: DevicePhoneMobileIcon,
-      description: "Pay with mobile wallet (Demo)",
     },
   ];
 
@@ -245,10 +226,6 @@ export default function PaymentPage() {
                   <span className="font-semibold text-black">
                     Rs. {(product.currentBid || 0).toLocaleString()}
                   </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Processing Fee:</span>
-                  <span className="font-semibold text-black">Rs. 0</span>
                 </div>
                 <div className="border-t border-gray-200 pt-3 flex justify-between">
                   <span className="text-lg font-bold text-black">Total Amount:</span>

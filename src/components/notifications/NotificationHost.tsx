@@ -22,6 +22,13 @@ interface ToastItem extends NotificationEventPayload {
   closing?: boolean
 }
 
+interface PendingPaymentItem {
+  productId: string
+  title: string
+  winningBid: number
+  paymentUrl: string
+}
+
 const AUTO_CLOSE_MS = 6000
 const MAX_TOASTS = 4
 
@@ -110,6 +117,57 @@ export function NotificationHost() {
       stream.close()
     }
   }, [enqueueToast, session?.user?.id, status])
+
+  useEffect(() => {
+    if (status !== 'authenticated' || !session?.user?.id) {
+      return
+    }
+
+    let cancelled = false
+
+    const pollPendingPayments = async () => {
+      try {
+        const response = await fetch('/api/payment/pending', { cache: 'no-store' })
+        if (!response.ok) return
+
+        const payload = (await response.json()) as { pending?: PendingPaymentItem[] }
+        const pendingItems = Array.isArray(payload.pending) ? payload.pending : []
+
+        for (const item of pendingItems) {
+          // Avoid spamming while the user is already on the payment page.
+          if (pathname === item.paymentUrl) {
+            continue
+          }
+
+          enqueueToast({
+            id: `pending-payment:${item.productId}`,
+            eventType: 'AUCTION_WON',
+            productId: item.productId,
+            title: 'Payment required for your winning bid',
+            description: `${item.title} - Rs. ${Number(item.winningBid || 0).toLocaleString()}`,
+            severity: 'warning',
+            actionUrl: item.paymentUrl,
+            metadata: {},
+            createdAt: new Date().toISOString(),
+          })
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to poll pending payments:', error)
+        }
+      }
+    }
+
+    void pollPendingPayments()
+    const timer = window.setInterval(() => {
+      void pollPendingPayments()
+    }, 30000)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [enqueueToast, pathname, session?.user?.id, status])
 
   if (status !== 'authenticated') {
     return null

@@ -95,23 +95,86 @@ export default function AdminDashboard() {
   }
 
   const handleExport = async () => {
-    if (!reportRootRef.current || !statsSectionRef.current || !controlsSectionRef.current) {
+    if (!reportRootRef.current) {
       return
     }
 
+    const previousSection = dashboardSection
     setIsExporting(true)
 
     try {
-      let sections = [{ element: reportRootRef.current }]
+      const waitForSectionRender = async () => {
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+      }
+
+      const waitForSectionReady = async (
+        getElement: () => HTMLElement | null,
+        timeoutMs = 10000,
+        stableMs = 500
+      ) => {
+        const startTime = Date.now()
+        let settledSince = Date.now()
+
+        while (Date.now() - startTime < timeoutMs) {
+          const section = getElement()
+          if (section) {
+            const hasLoadingIndicators = Boolean(
+              section.querySelector('.animate-pulse, [aria-busy="true"], [data-loading="true"]')
+            )
+
+            if (!hasLoadingIndicators) {
+              if (Date.now() - settledSince >= stableMs) {
+                return
+              }
+            } else {
+              settledSince = Date.now()
+            }
+          }
+
+          await new Promise<void>((resolve) => setTimeout(resolve, 120))
+        }
+      }
+
+      const prepareStats = async () => {
+        setDashboardSection('stats')
+        await waitForSectionRender()
+        await waitForSectionReady(() => statsSectionRef.current, 4000, 250)
+      }
+
+      const prepareControls = async () => {
+        setDashboardSection('controls')
+        await waitForSectionRender()
+        await waitForSectionReady(() => controlsSectionRef.current, 12000, 700)
+      }
+
+      const sections: Array<{
+        getElement: () => HTMLElement | null
+        beforeCapture: () => Promise<void>
+        startOnNewPage?: boolean
+      }> = []
 
       if (exportScope === 'stats') {
-        setDashboardSection('stats')
-        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
-        sections = [{ element: statsSectionRef.current }]
+        sections.push({
+          getElement: () => statsSectionRef.current,
+          beforeCapture: prepareStats,
+        })
       } else if (exportScope === 'controls') {
-        setDashboardSection('controls')
-        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
-        sections = [{ element: controlsSectionRef.current }]
+        sections.push({
+          getElement: () => controlsSectionRef.current,
+          beforeCapture: prepareControls,
+        })
+      } else {
+        sections.push({
+          getElement: () => statsSectionRef.current,
+          beforeCapture: prepareStats,
+        })
+
+        sections.push({
+          getElement: () => controlsSectionRef.current,
+          beforeCapture: prepareControls,
+          startOnNewPage: true,
+        })
       }
 
       await exportDashboardPdf({
@@ -134,6 +197,7 @@ export default function AdminDashboard() {
       console.error('Admin report export failed:', error)
       setAlertDialog({ open: true, message: 'Failed to export report. Please try again.' })
     } finally {
+      setDashboardSection(previousSection)
       setIsExporting(false)
     }
   }
