@@ -77,27 +77,32 @@ const HeroCarousel = ({ initialImages }: HeroCarouselProps) => {
 
   useEffect(() => {
     if (initialImages?.length) {
-      setImages(initialImages)
-      setLoading(false)
-      return
+      setImages(initialImages);
+      setLoading(false);
+    } else {
+      setImages(fallbackImages);
+      setLoading(false);
     }
 
-    // Fetch carousel images from public API endpoint
+    // Always re-fetch latest carousel images so admin updates are reflected quickly.
     const fetchImages = async () => {
       try {
-        const response = await fetch('/api/carousel');
+        const response = await fetch('/api/carousel', { cache: 'no-store' });
         if (response.ok) {
           const carouselImages: CarouselImage[] = await response.json();
-          // API already returns only active images sorted by order
-          const imageUrls = carouselImages.map(img => img.url);
-          
-          if (imageUrls.length > 0) {
-            setImages(imageUrls);
-          }
+          const imageUrls = carouselImages.map((img) => img.url).filter(Boolean);
+
+          // If admin removed all banners, fallback to static defaults.
+          setImages(imageUrls.length > 0 ? imageUrls : fallbackImages);
+          setCurrentIndex(0);
+        } else {
+          setImages(fallbackImages);
+          setCurrentIndex(0);
         }
       } catch (error) {
-        console.log('Using fallback images:', error)
-        // Keep using fallback images
+        console.log('Using fallback images:', error);
+        setImages(fallbackImages);
+        setCurrentIndex(0);
       } finally {
         setLoading(false);
       }
