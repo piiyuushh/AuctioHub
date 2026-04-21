@@ -13,7 +13,9 @@ export interface CoverPageData {
 }
 
 export interface ReportSection {
-  element: HTMLElement
+  element?: HTMLElement
+  getElement?: () => HTMLElement | null
+  beforeCapture?: () => void | Promise<void>
   startOnNewPage?: boolean
 }
 
@@ -74,18 +76,22 @@ const captureSectionCanvas = async (section: HTMLElement) => {
   await waitForImages(section)
   await settleLayout()
 
+  const sectionRect = section.getBoundingClientRect()
+  const captureWidth = Math.max(1, Math.ceil(section.scrollWidth || sectionRect.width))
+  const captureHeight = Math.max(1, Math.ceil(section.scrollHeight || sectionRect.height))
+
   return html2canvas(section, {
-    scale: 2,
+    scale: Math.max(1, Math.min(2, window.devicePixelRatio || 1)),
     useCORS: true,
-    allowTaint: true,
+    allowTaint: false,
     backgroundColor: "#ffffff",
-    foreignObjectRendering: true,
+    foreignObjectRendering: false,
     imageTimeout: 15000,
     logging: false,
-    windowWidth: 1920,
-    windowHeight: 1080,
-    width: section.scrollWidth,
-    height: section.scrollHeight,
+    scrollX: 0,
+    scrollY: -window.scrollY,
+    windowWidth: Math.max(document.documentElement.clientWidth, captureWidth),
+    windowHeight: Math.max(document.documentElement.clientHeight, captureHeight),
   })
 }
 
@@ -135,6 +141,10 @@ const addCanvasWithPagination = (
   canvas: HTMLCanvasElement,
   marginMm: number
 ) => {
+  if (canvas.width === 0 || canvas.height === 0) {
+    throw new Error("Captured section is empty")
+  }
+
   const usableWidthMm = A4_WIDTH_MM - marginMm * 2
   const usableHeightMm = A4_HEIGHT_MM - marginMm * 2
   const pxPerMm = canvas.width / usableWidthMm
@@ -198,11 +208,20 @@ export const exportDashboardPdf = async (options: ExportDashboardPdfOptions) => 
     let isFirstSection = true
 
     for (const section of options.sections) {
+      if (section.beforeCapture) {
+        await section.beforeCapture()
+      }
+
+      const targetElement = section.element ?? section.getElement?.()
+      if (!targetElement) {
+        throw new Error("Export section element is not available")
+      }
+
       if (!isFirstSection || section.startOnNewPage) {
         doc.addPage("a4", "portrait")
       }
 
-      const canvas = await captureSectionCanvas(section.element)
+      const canvas = await captureSectionCanvas(targetElement)
       addCanvasWithPagination(doc, canvas, marginMm)
       isFirstSection = false
     }

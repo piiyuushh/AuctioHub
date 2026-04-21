@@ -2,12 +2,6 @@ import { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { User } from "./models";
 
-// Log configuration status on startup
-console.log("NextAuth Configuration Status:");
-console.log("  - GOOGLE_CLIENT_ID:", process.env.GOOGLE_CLIENT_ID ? "Set" : "Missing");
-console.log("  - GOOGLE_CLIENT_SECRET:", process.env.GOOGLE_CLIENT_SECRET ? "Set" : "Missing");
-console.log("  - NEXTAUTH_SECRET:", process.env.NEXTAUTH_SECRET ? "Set" : "Missing");
-console.log("  - NEXTAUTH_URL:", process.env.NEXTAUTH_URL || "Not set (will use default)");
 
 export const authOptions: NextAuthOptions = {
   providers: [
