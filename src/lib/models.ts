@@ -104,6 +104,9 @@ export interface IAuctionHistory {
   productId: string
   productTitle: string
   productImageUrl?: string | null
+  productCategory?: string | null
+  sellerUserId?: string | null
+  sellerEmail?: string | null
   conductedAt?: Date
   auctionEndTime?: Date | null
   winnerUserId?: string | null
@@ -191,6 +194,9 @@ function mapToAuctionHistory(row: any): IAuctionHistory {
     productId: row.product_id,
     productTitle: row.product_title,
     productImageUrl: row.product_image_url,
+    productCategory: row.product_category,
+    sellerUserId: row.seller_user_id,
+    sellerEmail: row.seller_email,
     conductedAt: row.conducted_at,
     auctionEndTime: row.auction_end_time,
     winnerUserId: row.winner_user_id,
@@ -1553,9 +1559,12 @@ async function ensureAuctionHistoryTable(): Promise<void> {
 
         CREATE TABLE IF NOT EXISTS auction_history (
           id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-          product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+          product_id UUID NOT NULL,
           product_title VARCHAR(255) NOT NULL,
           product_image_url TEXT,
+          product_category VARCHAR(64),
+          seller_user_id UUID,
+          seller_email VARCHAR(255),
           conducted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           auction_end_time TIMESTAMP,
           winner_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
@@ -1571,6 +1580,14 @@ async function ensureAuctionHistoryTable(): Promise<void> {
         CREATE INDEX IF NOT EXISTS idx_auction_history_conducted_at ON auction_history(conducted_at);
         CREATE INDEX IF NOT EXISTS idx_auction_history_winner_user_id ON auction_history(winner_user_id);
         CREATE INDEX IF NOT EXISTS idx_auction_history_product_id ON auction_history(product_id);
+
+        ALTER TABLE auction_history
+          DROP CONSTRAINT IF EXISTS auction_history_product_id_fkey;
+
+        ALTER TABLE auction_history
+          ADD COLUMN IF NOT EXISTS product_category VARCHAR(64),
+          ADD COLUMN IF NOT EXISTS seller_user_id UUID,
+          ADD COLUMN IF NOT EXISTS seller_email VARCHAR(255);
       `)
     })().catch((error) => {
       auctionHistoryBootstrapPromise = null
@@ -1590,6 +1607,9 @@ export const AuctionHistory = {
         product_id,
         product_title,
         product_image_url,
+        product_category,
+        seller_user_id,
+        seller_email,
         conducted_at,
         auction_end_time,
         winner_user_id,
@@ -1597,13 +1617,16 @@ export const AuctionHistory = {
         winning_bid_amount,
         payment_type,
         outcome_status
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
       ON CONFLICT (product_id, payment_type) DO NOTHING
       RETURNING *`,
       [
         data.productId,
         data.productTitle,
         data.productImageUrl || null,
+        data.productCategory || null,
+        data.sellerUserId || null,
+        data.sellerEmail || null,
         data.conductedAt || new Date(),
         data.auctionEndTime || null,
         data.winnerUserId || null,

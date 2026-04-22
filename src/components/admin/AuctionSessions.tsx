@@ -2,7 +2,18 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
-import { FiCalendar, FiChevronLeft, FiChevronRight, FiCreditCard, FiFilter, FiSearch, FiTag, FiUser } from 'react-icons/fi'
+import {
+  FiCalendar,
+  FiChevronLeft,
+  FiChevronRight,
+  FiCreditCard,
+  FiFilter,
+  FiLayers,
+  FiPackage,
+  FiSearch,
+  FiTag,
+  FiUser,
+} from 'react-icons/fi'
 
 type SessionItem = {
   id: string
@@ -56,9 +67,11 @@ export default function AuctionSessions() {
         const params = new URLSearchParams()
         params.set('page', String(pagination.page))
         params.set('pageSize', String(pagination.pageSize))
+
         if (paymentType !== 'all') {
           params.set('paymentType', paymentType)
         }
+
         if (debouncedSearch) {
           params.set('search', debouncedSearch)
         }
@@ -101,45 +114,65 @@ export default function AuctionSessions() {
     }
   }
 
+  const formatDateTime = (value: string) => {
+    const date = new Date(value)
+    return date.toLocaleString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    })
+  }
+
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-[#dae8f2] bg-[linear-gradient(140deg,#f6fbff,#eef6fb_50%,#f8f4eb)] p-5">
+      <div className="rounded-3xl border border-[#d4e2ed] bg-[radial-gradient(circle_at_top_right,#f8f4eb_0%,#edf5fb_38%,#f6fbff_100%)] p-5 sm:p-6 shadow-sm">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="rounded-xl bg-white/80 p-4 border border-[#d9e7f2]">
-            <p className="text-xs uppercase tracking-wide text-[#4d7390] font-semibold">Full Payments</p>
-            <p className="text-2xl font-bold text-[#1f3f56] mt-2">{totals.fullCount}</p>
+          <div className="rounded-2xl bg-white p-4 border border-[#dce8f2] shadow-sm">
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-[#4d7390] font-semibold">Full Payments</p>
+              <FiCreditCard className="text-[#5a8dad]" />
+            </div>
+            <p className="text-3xl font-bold text-[#1f3f56] mt-2 leading-none">{totals.fullCount}</p>
           </div>
-          <div className="rounded-xl bg-white/80 p-4 border border-[#d9e7f2]">
-            <p className="text-xs uppercase tracking-wide text-[#4d7390] font-semibold">Penalty Payments</p>
-            <p className="text-2xl font-bold text-[#1f3f56] mt-2">{totals.penaltyCount}</p>
+          <div className="rounded-2xl bg-white p-4 border border-[#dce8f2] shadow-sm">
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-[#4d7390] font-semibold">Penalty Payments</p>
+              <FiLayers className="text-[#5a8dad]" />
+            </div>
+            <p className="text-3xl font-bold text-[#1f3f56] mt-2 leading-none">{totals.penaltyCount}</p>
           </div>
-          <div className="rounded-xl bg-white/80 p-4 border border-[#d9e7f2]">
-            <p className="text-xs uppercase tracking-wide text-[#4d7390] font-semibold">Visible Volume</p>
-            <p className="text-2xl font-bold text-[#1f3f56] mt-2">NPR {totals.sum.toFixed(2)}</p>
+          <div className="rounded-2xl bg-white p-4 border border-[#dce8f2] shadow-sm">
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-[#4d7390] font-semibold">Visible Volume</p>
+              <FiPackage className="text-[#5a8dad]" />
+            </div>
+            <p className="text-3xl font-bold text-[#1f3f56] mt-2 leading-none">NPR {totals.sum.toFixed(2)}</p>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <label className="md:col-span-2 relative">
-          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search product or winner"
-            className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:border-[#4682A9] bg-white"
+            className="w-full pl-10 pr-4 py-3.5 rounded-2xl border border-[#d5dce2] focus:outline-none focus:ring-2 focus:ring-[#7ca8c7]/35 focus:border-[#4682A9] bg-white shadow-sm"
           />
         </label>
         <label className="relative">
-          <FiFilter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+          <FiFilter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <select
             value={paymentType}
             onChange={(e) => {
               setPaymentType(e.target.value as 'all' | 'full' | 'penalty')
               setPagination((prev) => ({ ...prev, page: 1 }))
             }}
-            className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:border-[#4682A9] bg-white"
+            className="w-full pl-10 pr-4 py-3.5 rounded-2xl border border-[#d5dce2] focus:outline-none focus:ring-2 focus:ring-[#7ca8c7]/35 focus:border-[#4682A9] bg-white shadow-sm"
           >
             <option value="all">All payment types</option>
             <option value="full">Full</option>
@@ -149,71 +182,84 @@ export default function AuctionSessions() {
       </div>
 
       {loading ? (
-        <div className="py-16 text-center text-gray-600">Loading auction sessions...</div>
+        <div className="py-16 text-center text-gray-600 rounded-2xl border border-dashed border-[#cfd8df] bg-white">
+          Loading auction sessions...
+        </div>
       ) : items.length === 0 ? (
-        <div className="py-16 text-center border border-dashed border-gray-300 rounded-2xl text-gray-600">
+        <div className="py-16 text-center border border-dashed border-[#cfd8df] rounded-2xl text-gray-600 bg-white">
           No auction sessions found for current filters.
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-            {items.map((item) => (
-              <article key={item.id} className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-sm">
-                <div className="flex flex-col sm:flex-row">
-                  <div className="relative h-44 sm:h-auto sm:w-44 flex-shrink-0 bg-gray-100">
-                    {item.productImageUrl ? (
-                      <Image src={item.productImageUrl} alt={item.productTitle} fill className="object-cover" />
-                    ) : (
-                      <div className="h-full w-full flex items-center justify-center text-sm text-gray-500">No image</div>
-                    )}
-                  </div>
-                  <div className="flex-1 p-4 space-y-3">
-                    <h4 className="text-lg font-bold text-gray-900 line-clamp-2">{item.productTitle}</h4>
-                    <div className="flex flex-wrap gap-2">
-                      <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-[#e9f2f8] text-[#295776]">
-                        <FiTag />
-                        {CATEGORY_LABELS[item.category || ''] || 'Uncategorized'}
-                      </span>
-                      <span className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full ${item.paymentType === 'full' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                        <FiCreditCard />
-                        {item.paymentType}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                      <p className="text-gray-700 inline-flex items-center gap-2"><FiUser /> {item.winnerEmail || 'No winner'}</p>
-                      <p className="text-gray-700 inline-flex items-center gap-2"><FiCalendar /> {new Date(item.conductedAt).toLocaleString()}</p>
-                    </div>
-                    <div className="flex items-center justify-between pt-1">
-                      <p className="text-xs uppercase tracking-wide text-gray-500">Outcome: {item.outcomeStatus}</p>
-                      <p className="font-bold text-[#1f3f56]">NPR {item.winningBidAmount.toFixed(2)}</p>
-                    </div>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-
-          <div className="flex items-center justify-between pt-2">
-            <p className="text-sm text-gray-600">
-              Page {pagination.page} of {pagination.totalPages} ({pagination.total} total)
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={prevPage}
-                disabled={pagination.page <= 1}
-                className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-300 text-gray-700 disabled:opacity-50"
-              >
-                <FiChevronLeft /> Prev
-              </button>
-              <button
-                onClick={nextPage}
-                disabled={pagination.page >= pagination.totalPages}
-                className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-300 text-gray-700 disabled:opacity-50"
-              >
-                Next <FiChevronRight />
-              </button>
+          <div className="rounded-3xl border border-[#d9e2e9] bg-white shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full border-separate border-spacing-0">
+                <thead>
+                  <tr className="bg-[#f6fafc] border-b border-[#e6edf2]">
+                    <th className="text-left text-[11px] uppercase tracking-[0.16em] text-[#5b7990] font-semibold px-4 py-3">Product</th>
+                    <th className="text-left text-[11px] uppercase tracking-[0.16em] text-[#5b7990] font-semibold px-4 py-3">Winner</th>
+                    <th className="text-left text-[11px] uppercase tracking-[0.16em] text-[#5b7990] font-semibold px-4 py-3">Payment Type</th>
+                    <th className="text-left text-[11px] uppercase tracking-[0.16em] text-[#5b7990] font-semibold px-4 py-3">Outcome</th>
+                    <th className="text-left text-[11px] uppercase tracking-[0.16em] text-[#5b7990] font-semibold px-4 py-3">Conducted At</th>
+                    <th className="text-right text-[11px] uppercase tracking-[0.16em] text-[#5b7990] font-semibold px-4 py-3">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((item) => (
+                    <tr key={item.id} className="border-b border-[#edf1f4] last:border-0 hover:bg-[#fbfdff] transition-colors">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3 min-w-[280px]">
+                          <div className="relative h-14 w-14 rounded-xl overflow-hidden bg-gray-100 shrink-0 border border-[#d8e3ec]">
+                            {item.productImageUrl ? (
+                              <Image src={item.productImageUrl} alt={item.productTitle} fill className="object-cover" />
+                            ) : (
+                              <div className="h-full w-full flex items-center justify-center text-[10px] text-gray-500">No image</div>
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-[#1f2f3d] truncate">{item.productTitle}</p>
+                            <span className="mt-1 inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-[#e7f1f8] text-[#245676] font-medium">
+                              <FiTag />
+                              {CATEGORY_LABELS[item.category || ''] || 'Uncategorized'}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-[#3f5568]">
+                        <div className="inline-flex items-center gap-2 min-w-[180px]">
+                          <FiUser className="text-[#6a8295] shrink-0" />
+                          <span className="truncate">{item.winnerEmail || 'No winner assigned'}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium ${item.paymentType === 'full' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}
+                        >
+                          <FiCreditCard />
+                          {item.paymentType === 'full' ? 'Full Payment' : 'Penalty Payment'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        <span className="inline-flex items-center rounded-full bg-[#f0f4f7] text-[#4a5f70] px-2.5 py-1 capitalize">
+                          {item.outcomeStatus.replace('_', ' ')}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-[#3f5568]">
+                        <div className="inline-flex items-center gap-2 whitespace-nowrap">
+                          <FiCalendar className="text-[#6a8295] shrink-0" />
+                          <span>{formatDateTime(item.conductedAt)}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                        <p className="text-2xl font-extrabold text-[#1f3f56] leading-none">NPR {item.winningBidAmount.toFixed(2)}</p>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
+
         </>
       )}
     </div>

@@ -199,6 +199,50 @@ export async function PUT(request: NextRequest) {
 
     const hasPenaltyPayment = await AuctionHistory.existsByProductAndPayment(productId, 'penalty')
 
+    const hasInfoFieldChanges =
+      (title !== undefined && title !== product.title) ||
+      (description !== undefined && description !== product.description) ||
+      (imageUrl !== undefined && imageUrl !== product.imageUrl) ||
+      (category !== undefined && category !== product.category)
+
+    const isAwaitingRelistAfterPenalty =
+      hasPenaltyPayment &&
+      product.auctionStatus === 'none' &&
+      !product.hasAuction
+
+    // Lock product details once an auction session has ended.
+    // Only re-listing after penalty payment is allowed before a new auction starts.
+    if (product.auctionStatus === 'ended' || isAwaitingRelistAfterPenalty) {
+      if (hasInfoFieldChanges) {
+        return NextResponse.json(
+          { error: 'Product details cannot be edited after an auction session has ended.' },
+          { status: 409 }
+        )
+      }
+
+      if (!hasPenaltyPayment) {
+        return NextResponse.json(
+          { error: 'This auction session has ended. Re-listing is only allowed after penalty payment completion.' },
+          { status: 409 }
+        )
+      }
+
+      const isRelistRequest = hasAuction === true
+      if (!isRelistRequest) {
+        return NextResponse.json(
+          { error: 'After penalty payment, this product can only be re-listed for a new auction.' },
+          { status: 409 }
+        )
+      }
+
+      if (endAuction || extendAuction) {
+        return NextResponse.json(
+          { error: 'Ended auction sessions cannot be extended or ended again.' },
+          { status: 409 }
+        )
+      }
+    }
+
     const wasActiveAuction = product.hasAuction && product.auctionStatus === 'active'
 
     // Update other fields

@@ -910,8 +910,18 @@ export default function CategoryPage() {
                           )}
                           <div className="flex gap-2">
                             <button
-                              onClick={() => openEditProductForm(product)}
-                              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 text-black rounded-lg hover:border-black transition-colors"
+                              onClick={() => {
+                                if (isEnded) {
+                                  setMessage({
+                                    type: "error",
+                                    text: "Ended auction products cannot be edited. Only penalty-paid items can be re-listed.",
+                                  });
+                                  return;
+                                }
+                                openEditProductForm(product)
+                              }}
+                              disabled={isEnded}
+                              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 text-black rounded-lg hover:border-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-300"
                             >
                               <PencilSquareIcon className="h-4 w-4" />
                               Edit
