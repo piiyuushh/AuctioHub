@@ -70,14 +70,13 @@ export async function GET(request: NextRequest) {
         ah.product_id,
         ah.product_title,
         ah.product_image_url,
+        ah.product_category,
         ah.winner_email,
         ah.winning_bid_amount,
         ah.payment_type,
         ah.outcome_status,
-        ah.conducted_at,
-        p.category
+        ah.conducted_at
        FROM auction_history ah
-       LEFT JOIN products p ON p.id = ah.product_id
        ${whereSql}
        ORDER BY ah.conducted_at DESC, ah.created_at DESC
        LIMIT $${paramCount} OFFSET $${paramCount + 1}`,
@@ -92,7 +91,7 @@ export async function GET(request: NextRequest) {
         productId: row.product_id,
         productTitle: row.product_title,
         productImageUrl: row.product_image_url,
-        category: row.category,
+        category: row.product_category,
         winnerEmail: row.winner_email,
         winningBidAmount: Number(row.winning_bid_amount || 0),
         paymentType: row.payment_type,

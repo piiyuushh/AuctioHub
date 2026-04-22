@@ -144,9 +144,12 @@ CREATE INDEX IF NOT EXISTS idx_chat_messages_user_id ON chat_messages(user_id);
 -- ==================== AUCTION HISTORY TABLE ====================
 CREATE TABLE IF NOT EXISTS auction_history (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  product_id UUID NOT NULL,
   product_title VARCHAR(255) NOT NULL,
   product_image_url TEXT,
+  product_category VARCHAR(64),
+  seller_user_id UUID,
+  seller_email VARCHAR(255),
   conducted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   auction_end_time TIMESTAMP,
   winner_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
